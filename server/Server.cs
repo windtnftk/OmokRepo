@@ -29,11 +29,13 @@ namespace ServerApp
         private int? _waitingUserId;
         private bool _disposed;
 
+        // 역할: 서버 리슨 소켓을 초기화한다.
         public Server()
         {
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         }
 
+        // 역할: 서버 실행 진입점을 제공한다.
         public static void Main(string[] args)
         {
             using var server = new Server();
@@ -48,6 +50,7 @@ namespace ServerApp
             server.Run();
         }
 
+        // 역할: 리슨 및 로직 스레드를 시작한다.
         public void Start()
         {
             _listenSocket.Bind(new IPEndPoint(IPAddress.Any, Port));
@@ -63,6 +66,7 @@ namespace ServerApp
             Console.WriteLine($"서버 ON : {Port} (멀티 클라)");
         }
 
+        // 역할: 서버 종료 신호를 기다린다.
         public void Run()
         {
             while (_running)
@@ -73,6 +77,7 @@ namespace ServerApp
             Stop();
         }
 
+        // 역할: 서버를 안전하게 정지한다.
         public void Stop()
         {
             if (!_running)
@@ -115,12 +120,14 @@ namespace ServerApp
             _userManager.CloseAll();
         }
 
+        // 역할: 리소스를 해제한다.
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        // 역할: 내부 리소스를 정리한다.
         protected virtual void Dispose(bool disposing)
         {
             if (_disposed)
@@ -136,6 +143,7 @@ namespace ServerApp
             _disposed = true;
         }
 
+        // 역할: 신규 클라이언트 접속을 수락한다.
         private void AcceptLoop()
         {
             while (_running)
@@ -178,6 +186,7 @@ namespace ServerApp
             }
         }
 
+        // 역할: 클라이언트 세션의 수신 루프를 처리한다.
         private void ClientWorker(ClientSession session)
         {
             Protocol.IP_Port ipPort = Protocol_IO.ProtocolIO.GetIpPort(session.EndPoint);
@@ -188,7 +197,7 @@ namespace ServerApp
             {
                 while (_running)
                 {
-                    if (!Protocol_IO.ProtocolIO.ReceivePacket(session.Socket, out PacketType ptype, out byte[] payload))
+                    if (!Protocol_IO.ProtocolIO.ReceivePacket(session.Socket, out PacketType packetType, out byte[] payloadBytes))
                     {
                         LogDisconnectOrError(ipPort);
                         break;
@@ -196,7 +205,7 @@ namespace ServerApp
 
                     if (!handshakeDone)
                     {
-                        if (!TryHandshake(ptype, payload, session, ipPort))
+                        if (!TryHandshake(packetType, payloadBytes, session, ipPort))
                         {
                             break;
                         }
@@ -206,7 +215,7 @@ namespace ServerApp
                         continue;
                     }
 
-                    _inboundQueue.Enqueue(new PacketEvent(userId, ptype, payload));
+                    _inboundQueue.Enqueue(new PacketEvent(userId, packetType, payloadBytes));
                 }
             }
             finally
@@ -224,39 +233,41 @@ namespace ServerApp
             }
         }
 
-        private bool TryHandshake(PacketType ptype, byte[] payload, ClientSession session, Protocol.IP_Port ipPort)
+        // 역할: 초기 핸드셰이크를 검증하고 환영 메시지를 전송한다.
+        private bool TryHandshake(PacketType packetType, byte[] payloadBytes, ClientSession session, Protocol.IP_Port ipPort)
         {
-            if (ptype != PacketType.C2S_Hello)
+            if (packetType != PacketType.C2S_Hello)
             {
                 ServerSend.Error(session.Socket, "handshake required");
                 return false;
             }
 
-            string msg = PacketSerializer.ParseString(payload);
-            if (msg != "Hello")
+            string message = PacketSerializer.ParseString(payloadBytes);
+            if (message != "Hello")
             {
                 ServerSend.Error(session.Socket, "invalid hello payload");
                 return false;
             }
 
-            int cur = Interlocked.Increment(ref _clientCount);
-            if (cur > MaxClients)
+            int currentCount = Interlocked.Increment(ref _clientCount);
+            if (currentCount > MaxClients)
             {
                 Interlocked.Decrement(ref _clientCount);
-                string fullMsg = "현재 인원이 가득찼습니다.";
-                ServerSend.Error(session.Socket, fullMsg);
-                Console.WriteLine($"거부된 연결({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}) - 서버가 가득 참 (현재: {cur})");
+                string fullMessage = "현재 인원이 가득찼습니다.";
+                ServerSend.Error(session.Socket, fullMessage);
+                Console.WriteLine($"거부된 연결({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}) - 서버가 가득 참 (현재: {currentCount})");
                 return false;
             }
 
 
-            string welcome = $"Welcome. 현재 접속 인원: {cur}";
-            ServerSend.Welcome(session.Socket, welcome);
+            string welcomeMessage = $"Welcome. 현재 접속 인원: {currentCount}";
+            ServerSend.Welcome(session.Socket, welcomeMessage);
 
-            Console.WriteLine($"핸드셰이크 완료: {(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port} -> 현재 접속 수: {cur}");
+            Console.WriteLine($"핸드셰이크 완료: {(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port} -> 현재 접속 수: {currentCount}");
             return true;
         }
 
+        // 역할: 수신된 시스템/패킷 이벤트를 처리한다.
         private void LogicLoop()
         {
             while (_running)
@@ -285,6 +296,7 @@ namespace ServerApp
             }
         }
 
+        // 역할: 사용자 요청 패킷을 분기 처리한다.
         private void HandlePacketEvent(PacketEvent packetEvent)
         {
             if (!_userManager.TryGetSession(packetEvent.UserId, out ClientSession session))
@@ -303,7 +315,7 @@ namespace ServerApp
                     HandleMatchRequest(packetEvent.UserId);
                     break;
                 case PacketType.C2S_PlaceStoneRequest:
-                    HandlePosition(packetEvent.UserId, session.Socket, ipPort, packetEvent.Payload);
+                    HandlePlaceStoneRequest(packetEvent.UserId, session.Socket, ipPort, packetEvent.Payload);
                     break;
                 case PacketType.C2S_EndGame:
                     HandleEndGame(packetEvent.UserId);
@@ -314,52 +326,54 @@ namespace ServerApp
             }
         }
 
-        private void HandleChatMessage(int userId, Socket clientSock, Protocol.IP_Port ipPort, byte[] payload)
+        // 역할: 채팅 메시지를 룸 참여자에게 중계한다.
+        private void HandleChatMessage(int userId, Socket clientSocket, Protocol.IP_Port ipPort, byte[] payloadBytes)
         {
-            if (!_userManager.TryGetUser(userId, out SessionInfo info))
+            if (!_userManager.TryGetUser(userId, out SessionInfo userInfo))
             {
                 return;
             }
 
-            if (info.State == UserState.InRoom && info.RoomId.HasValue && _rooms.TryGetValue(info.RoomId.Value, out Room room))
+            if (userInfo.State == UserState.InRoom && userInfo.RoomId.HasValue && _rooms.TryGetValue(userInfo.RoomId.Value, out Room room))
             {
-                string text = PacketSerializer.ParseString(payload);
-                Console.WriteLine($"받은 단어({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}): {text}");
+                string messageText = PacketSerializer.ParseString(payloadBytes);
+                Console.WriteLine($"받은 단어({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}): {messageText}");
                 foreach (int playerId in room.GetPlayers())
                 {
                     if (_userManager.TryGetSession(playerId, out ClientSession playerSession))
                     {
-                        ServerSend.ChatMessage(playerSession.Socket, text);
+                        ServerSend.ChatMessage(playerSession.Socket, messageText);
                     }
                 }
             }
         }
 
 
-        private void HandlePosition(int userId, Socket clientSock, Protocol.IP_Port ipPort, byte[] payload)
+        // 역할: 착수 요청을 검증하고 룸 참여자에게 전파한다.
+        private void HandlePlaceStoneRequest(int userId, Socket clientSocket, Protocol.IP_Port ipPort, byte[] payloadBytes)
         {
-            if (!PacketSerializer.TryParsePlace(payload, out uint x, out uint y))
+            if (!PacketSerializer.TryParsePlace(payloadBytes, out uint x, out uint y))
             {
-                ServerSend.Error(clientSock, "bad position payload");
+                ServerSend.Error(clientSocket, "bad position payload");
                 return;
             }
 
             Console.WriteLine($"받은 좌표({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}): ({x},{y})");
-            if (!_userManager.TryGetUser(userId, out SessionInfo info) || !info.RoomId.HasValue)
+            if (!_userManager.TryGetUser(userId, out SessionInfo userInfo) || !userInfo.RoomId.HasValue)
             {
-                ServerSend.Error(clientSock, "not in room");
+                ServerSend.Error(clientSocket, "not in room");
                 return;
             }
 
-            if (!_rooms.TryGetValue(info.RoomId.Value, out Room room))
+            if (!_rooms.TryGetValue(userInfo.RoomId.Value, out Room room))
             {
-                ServerSend.Error(clientSock, "room not found");
+                ServerSend.Error(clientSocket, "room not found");
                 return;
             }
 
             if (!room.TryPlace(userId, x, y, out string rejectReason))
             {
-                ServerSend.Error(clientSock, rejectReason ?? "invalid move");
+                ServerSend.Error(clientSocket, rejectReason ?? "invalid move");
                 return;
             }
 
@@ -372,14 +386,15 @@ namespace ServerApp
             }
         }
 
+        // 역할: 매칭 요청을 처리하고 룸을 생성한다.
         private void HandleMatchRequest(int userId)
         {
-            if (!_userManager.TryGetUser(userId, out SessionInfo info))
+            if (!_userManager.TryGetUser(userId, out SessionInfo userInfo))
             {
                 return;
             }
 
-            if (info.State != UserState.Connected)
+            if (userInfo.State != UserState.Connected)
             {
                 return;
             }
@@ -426,14 +441,15 @@ namespace ServerApp
             }
         }
 
+        // 역할: 게임 종료 요청을 처리하고 룸을 정리한다.
         private void HandleEndGame(int userId)
         {
-            if (!_userManager.TryGetUser(userId, out SessionInfo info) || !info.RoomId.HasValue)
+            if (!_userManager.TryGetUser(userId, out SessionInfo userInfo) || !userInfo.RoomId.HasValue)
             {
                 return;
             }
 
-            int roomId = info.RoomId.Value;
+            int roomId = userInfo.RoomId.Value;
             if (!_rooms.TryGetValue(roomId, out Room room))
             {
                 _userManager.SetRoom(userId, null);
@@ -450,6 +466,7 @@ namespace ServerApp
             _rooms.Remove(roomId);
         }
 
+        // 역할: 시스템 이벤트(예: 연결 종료)를 처리한다.
         private void HandleSystemEvent(SystemEvent systemEvent)
         {
             switch (systemEvent.Type)
@@ -464,11 +481,13 @@ namespace ServerApp
             }
         }
 
+        // 역할: 접속 종료 로그를 출력한다.
         private static void LogDisconnectOrError(Protocol.IP_Port ipPort)
         {
             Console.WriteLine($"클라이언트 연결 종료: {(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}");
         }
 
+        // 역할: 스레드를 제한 시간 내에 종료 대기한다.
         private static void JoinThread(Thread thread)
         {
             if (thread == null)
@@ -482,6 +501,7 @@ namespace ServerApp
             }
         }
 
+        // 역할: 세션 소켓을 안전하게 종료한다.
         private static void SafeCloseSession(ClientSession session)
         {
             if (session?.Socket == null)

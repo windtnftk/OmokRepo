@@ -26,6 +26,7 @@ namespace ServerApp
         public int CurrentTurnUserId { get; private set; }
         public RoomState State { get; private set; }
 
+        // 역할: 룸 기본 상태를 초기화한다.
         public Room(int roomId, int userA, int userB)
         {
             RoomId = roomId;
@@ -34,12 +35,14 @@ namespace ServerApp
             State = RoomState.Waiting;
         }
 
+        // 역할: 룸을 시작 상태로 전환한다.
         public void Start()
         {
             State = RoomState.Playing;
             CurrentTurnUserId = PlayerAId;
         }
 
+        // 역할: 착수 가능 여부를 검증하고 돌을 놓는다.
         public bool TryPlace(int userId, uint x, uint y, out string rejectReason)
         {
             rejectReason = null;
@@ -73,11 +76,13 @@ namespace ServerApp
             return true;
         }
 
+        // 역할: 상대 플레이어 ID를 반환한다.
         public int GetOpponentId(int userId)
         {
             return userId == PlayerAId ? PlayerBId : PlayerAId;
         }
 
+        // 역할: 룸 참여자 ID를 열거한다.
         public IEnumerable<int> GetPlayers()
         {
             yield return PlayerAId;
