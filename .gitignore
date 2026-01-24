@@ -405,3 +405,28 @@ Recordings/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Unity generated
+**/Library/
+**/Temp/
+**/Obj/
+**/Logs/
+**/UserSettings/
+**/.vs/
+
+# Plastic SCM (Unity Version Control)
+**/.plastic/
+
+# IDE generated
+*.csproj
+*.sln
+*.user
+*.suo
+*.tmp
+*.pidb
+*.booproj
+*.svd
+
+# Optional: local tools
+**/.vsconfig
+
