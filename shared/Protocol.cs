@@ -57,6 +57,7 @@ namespace Protocol
         //S2C_Error = 2017,                   // 공통 오류 응답 (errorCode + msg(optional))
     }
 
+    // 역할: 프로토콜 관련 상수를 보관한다.
     public static class ProtocolHelper
     {
         public const uint MAX_PAYLOAD = 1024u * 1024u; // 1MB

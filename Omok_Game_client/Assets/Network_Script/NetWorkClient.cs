@@ -20,6 +20,7 @@ namespace NetworkClientApp
 
         public bool IsConnected => _connected;
 
+        // 역할: 서버에 연결하고 핸드셰이크를 수행한다.
         public bool Connect(string host, int port)
         {
             Disconnect();
@@ -69,6 +70,7 @@ namespace NetworkClientApp
             }
         }
 
+        // 역할: 연결을 종료하고 리소스를 정리한다.
         public void Disconnect()
         {
             _running = false;
@@ -91,6 +93,7 @@ namespace NetworkClientApp
             }
         }
 
+        // 역할: 채팅 메시지를 서버로 전송한다.
         public bool SendWord(string msg)
         {
             if (!_connected || _socket == null) return false;
@@ -101,6 +104,7 @@ namespace NetworkClientApp
             }
         }
 
+        // 역할: 착수 좌표를 서버로 전송한다.
         public bool SendPosition(uint x, uint y)
         {
             if (!_connected || _socket == null) return false;
@@ -111,16 +115,19 @@ namespace NetworkClientApp
             }
         }
 
+        // 역할: 수신 큐에서 패킷을 꺼낸다.
         public bool TryDequeue(out PacketEvent packet)
         {
             return _recvQueue.TryDequeue(out packet);
         }
 
+        // 역할: 연결 해제와 리소스 해제를 수행한다.
         public void Dispose()
         {
             Disconnect();
         }
 
+        // 역할: 수신 루프에서 서버 패킷을 큐에 적재한다.
         private void ReceiveLoop()
         {
             while (_running)
@@ -153,6 +160,7 @@ namespace NetworkClientApp
             CleanupSocket();
         }
 
+        // 역할: 소켓을 안전하게 닫고 참조를 제거한다.
         private void CleanupSocket()
         {
             try
