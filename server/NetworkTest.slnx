@@ -1,4 +1,4 @@
 <Solution>
-  <Project Path="../ClassLibrary1/shared.csproj" Id="97816a6b-f5cd-414c-b23b-7cbc9e19a435" />
+  <Project Path="../shared/shared.csproj" />
   <Project Path="NetworkTest.csproj" />
 </Solution>
