@@ -1,4 +1,3 @@
 <Solution>
-  <Project Path="../shared/shared.csproj" />
   <Project Path="NetworkTest.csproj" />
 </Solution>
