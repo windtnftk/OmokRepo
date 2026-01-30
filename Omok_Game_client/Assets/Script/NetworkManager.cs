@@ -21,9 +21,6 @@ public class NetworkManager : MonoBehaviour
         _client = new NetworkClient();
     }
 
-        _client.SendMatchRequest();
-    }
-
     // : ä û Ѵ.
     public void RequestWord(string msg)
     {
@@ -51,6 +48,7 @@ public class NetworkManager : MonoBehaviour
 
     private void HandlePacket(PacketEvent packet)
     {
+    }
     public bool Connect(string ip, int port)
     {
         return _client.Connect(ip, port);
@@ -65,6 +63,6 @@ public class NetworkManager : MonoBehaviour
     // 역할: 매칭 요청을 보낸다(예시).
     public void RequestMatch()
     {
-        //_client.SendMatchRequest(); // 네 함수명에 맞춰서
+        _client.SendMatchRequest();
     }
 }
