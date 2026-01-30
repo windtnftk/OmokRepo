@@ -4,7 +4,7 @@ using Protocol_IO;
 
 namespace NetworkSend
 {
-    public static class ClientSend
+    internal static class ClientSend
     {
         // 역할: 핸드셰이크용 Hello 패킷을 전송한다.
         public static bool Hello(Socket socket)

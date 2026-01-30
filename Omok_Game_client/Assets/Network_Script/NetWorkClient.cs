@@ -100,7 +100,20 @@ namespace NetworkClientApp
 
             lock (_sendLock)
             {
+                // send/recv 스레드에서 소켓 동시 접근 방지
                 return ClientSend.Chat(_socket, msg);
+            }
+        }
+
+        // 역할: 매칭 요청을 서버로 전송한다.
+        public bool SendMatchRequest()
+        {
+            if (!_connected || _socket == null) return false;
+
+            lock (_sendLock)
+            {
+                // send/recv 스레드에서 소켓 동시 접근 방지
+                return ClientSend.MatchRequest(_socket);
             }
         }
 
@@ -111,6 +124,7 @@ namespace NetworkClientApp
 
             lock (_sendLock)
             {
+                // send/recv 스레드에서 소켓 동시 접근 방지
                 return ClientSend.Place(_socket, x, y);
             }
         }
