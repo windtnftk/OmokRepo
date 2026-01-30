@@ -5,11 +5,11 @@ public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance { get; private set; }
 
-    private NetworkClient _client; // ´Ï°¡ ¸¸µç Å¬·¡½º
+    private NetworkClient _client; // ë‹ˆê°€ ë§Œë“  í´ë˜ìŠ¤
 
     void Awake()
     {
-        // Áßº¹ »ı¼º ¹æÁö
+        // ì¤‘ë³µ ìƒì„± ë°©ì§€
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -21,21 +21,50 @@ public class NetworkManager : MonoBehaviour
         _client = new NetworkClient();
     }
 
-    // ¿ªÇÒ: ¼­¹ö ¿¬°áÀ» ½ÃÀÛÇÑ´Ù.
+        _client.SendMatchRequest();
+    }
+
+    // : Ã¤ Ã» Ñ´.
+    public void RequestWord(string msg)
+    {
+        _client.SendWord(msg);
+    }
+
+    // :  Ç¥ Ã» Ñ´.
+    public void RequestPosition(uint x, uint y)
+    {
+        _client.SendPosition(x, y);
+    }
+
+    void Update()
+    {
+        ProcessRecvQueue();
+    }
+
+    private void ProcessRecvQueue()
+    {
+        while (_client.TryDequeue(out PacketEvent packet))
+        {
+            HandlePacket(packet);
+        }
+    }
+
+    private void HandlePacket(PacketEvent packet)
+    {
     public bool Connect(string ip, int port)
     {
         return _client.Connect(ip, port);
     }
 
-    // ¿ªÇÒ: ¼­¹ö ¿¬°áÀ» Á¾·áÇÑ´Ù.
+    // ì—­í• : ì„œë²„ ì—°ê²°ì„ ì¢…ë£Œí•œë‹¤.
     public void Disconnect()
     {
         _client.Disconnect();
     }
 
-    // ¿ªÇÒ: ¸ÅÄª ¿äÃ»À» º¸³½´Ù(¿¹½Ã).
+    // ì—­í• : ë§¤ì¹­ ìš”ì²­ì„ ë³´ë‚¸ë‹¤(ì˜ˆì‹œ).
     public void RequestMatch()
     {
-        //_client.SendMatchRequest(); // ³× ÇÔ¼ö¸í¿¡ ¸ÂÃç¼­
+        //_client.SendMatchRequest(); // ë„¤ í•¨ìˆ˜ëª…ì— ë§ì¶°ì„œ
     }
 }
