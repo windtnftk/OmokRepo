@@ -7,10 +7,16 @@ public class MatchPanel: MonoBehaviour
     [SerializeField] private GameObject MatchingStart;
     [SerializeField] private TextMeshProUGUI M_TextMeshPro;
 
-    bool connected = false;
     public void ButtonOn()
     {
-        GameManager.instance.SetState(GameState.Matching);
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.RequestMatch();
+        }
+    }
+
+    public void ShowMatchingText()
+    {
         if (M_TextMeshPro != null)
         {
             M_TextMeshPro.SetText("매칭중...");
@@ -23,13 +29,9 @@ public class MatchPanel: MonoBehaviour
         {
             MatchingStart.SetActive(true);
         }
-        if (NetworkManager.Instance != null)
-        {
-            NetworkManager.Instance.RequestMatch();
-        }
     }
 
-    public void HandleMatchFail()
+    public void ShowMatchFailText()
     {
         if (M_TextMeshPro != null)
         {
@@ -39,12 +41,5 @@ public class MatchPanel: MonoBehaviour
         {
             MatchingButton.SetActive(true);
         }
-        GameManager.instance.SetState(GameState.Connected);
-    }
-
-    public void HandleMatchSuccess()
-    {
-        gameObject.SetActive(false);
-        GameManager.instance.SetState(GameState.InGame);
     }
 }

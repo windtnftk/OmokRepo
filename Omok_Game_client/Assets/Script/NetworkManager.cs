@@ -53,28 +53,25 @@ public class NetworkManager : MonoBehaviour
         {
             case PacketType.S2C_Welcome:
                 {
-                    ConnectPanel connectPanel = FindObjectOfType<ConnectPanel>();
-                    if (connectPanel != null)
+                    if (UIManager.Instance != null)
                     {
-                        connectPanel.HandleConnectSuccess();
+                        UIManager.Instance.OnConnectSuccess();
                     }
                     break;
                 }
             case PacketType.S2C_MatchFound:
                 {
-                    MatchPanel matchPanel = FindObjectOfType<MatchPanel>();
-                    if (matchPanel != null)
+                    if (UIManager.Instance != null)
                     {
-                        matchPanel.HandleMatchSuccess();
+                        UIManager.Instance.OnMatchFound();
                     }
                     break;
                 }
             case PacketType.S2C_MatchFail:
                 {
-                    MatchPanel matchPanel = FindObjectOfType<MatchPanel>();
-                    if (matchPanel != null)
+                    if (UIManager.Instance != null)
                     {
-                        matchPanel.HandleMatchFail();
+                        UIManager.Instance.OnMatchFail();
                     }
                     break;
                 }
