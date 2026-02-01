@@ -1,88 +1,104 @@
 using UnityEngine;
-
+using Assets.Script;
 public class MainBoard : MonoBehaviour
 {
+    private BoardLogic logic;
+    
     //[SerializeField]
     //private GameObject Stone;
     //[SerializeField]
     //private float StonePosition;
     //// Start is called once before the first execution of Update after the MonoBehaviour is created
-
-    enum Stone { None, Black, White }
-    public Grid grid;
-    public LayerMask boardMask;    // º¸µå¸¸ ¸ÂÃß´Â ·¹ÀÌ¾î
-    [field: SerializeField] public GameObject BlackStonePrefab{ get; private set; }
-    [field: SerializeField] public GameObject WhiteStonePrefab{ get; private set; }
-    private Stone[,] board = new Stone[19, 19];
-
-    public bool TryCreateStone(Vector3 worldPos)
+    private void Awake()
     {
-        // 2) º¸µå È÷Æ®(Á¤È®¼º): Board ·¹ÀÌ¾î¸¸
+        logic = new BoardLogic();
+    }
+    public Grid grid;
+    public LayerMask boardMask;    // ë³´ë“œë§Œ ë§ì¶”ëŠ” ë ˆì´ì–´
+    [field: SerializeField] public GameObject BlackStonePrefab { get; private set; }
+    [field: SerializeField] public GameObject WhiteStonePrefab { get; private set; }
+    public PlaceSucces TryCreateStone(Vector3 worldPos)
+    {
+        PlaceSucces Succes;
+        // 2) ë³´ë“œ íˆíŠ¸(ì •í™•ì„±): Board ë ˆì´ì–´ë§Œ
         var hit = Physics2D.Raycast(worldPos, Vector2.zero, 0f, boardMask);
-        if (hit.collider == null) return false;
+        if (hit.collider == null)
+        {
+            return PlaceSucces.None;
+        }
 
-        // 3) ¿ùµå ¡æ ¼¿ ÁÂÇ¥
+        // 3) ì›”ë“œ â†’ ì…€ ì¢Œí‘œ
         Vector3Int cell = grid.WorldToCell(worldPos);
 
-        // 4) 19¡¿19 ¹üÀ§ º¸Á¤
-        cell.x = Mathf.Clamp(cell.x, 0, 18);
-        cell.y = Mathf.Clamp(cell.y, 0, 18);
+        // 4) 19Ã—19 ë²”ìœ„ ë³´ì •
+        //cell.x = Mathf.Clamp(cell.x, 0, 18);
+        //cell.y = Mathf.Clamp(cell.y, 0, 18);
 
-        // 5) Á¡À¯ ¿©ºÎ È®ÀÎ(³ªÁß¿¡ ¡°±× Ä­¿¡ µ¹ ÀÖ¾î?¡± ±â´ÉÀÇ ÇÙ½É)
-        if (board[cell.x, cell.y] != Stone.None) return false;  // ÀÌ¹Ì ÀÖÀ¸¸é ¹«½Ã
+        // 5) ì ìœ  ì—¬ë¶€ í™•ì¸(ë‚˜ì¤‘ì— â€œê·¸ ì¹¸ì— ëŒ ìˆì–´?â€ ê¸°ëŠ¥ì˜ í•µì‹¬)
+        //if (board[cell.x, cell.y] != Stone.None) return false;  // ì´ë¯¸ ìˆìœ¼ë©´ ë¬´ì‹œ
 
-        // 6) ¼¿ Áß½É ¿ùµå ÁÂÇ¥(= ½º³À À§Ä¡)
+        // 6) ì…€ ì¤‘ì‹¬ ì›”ë“œ ì¢Œí‘œ(= ìŠ¤ëƒ… ìœ„ì¹˜)
 
-        // 7) µ¹ »ı¼º & º¸µå »óÅÂ °»½Å
-        var prefab = GameManager.instance.isBlackTurn ? BlackStonePrefab : WhiteStonePrefab;
+        // 7) ëŒ ìƒì„± & ë³´ë“œ ìƒíƒœ ê°±ì‹ 
+        Stone StoneCheck = GameManager.instance.isBlackTurn ? Stone.Black : Stone.White;
+        Succes = logic.PlaceStone(cell.x, cell.y, StoneCheck);
+        if (Succes == PlaceSucces.None) // ì‹¤íŒ¨ì‹œ
+        {
+            Debug.Log("ì‹¤íŒ¨");
+            return Succes;
+        }
+        var prefab = StoneCheck == Stone.Black ? BlackStonePrefab : WhiteStonePrefab;
         Instantiate(prefab, grid.GetCellCenterWorld(cell), Quaternion.identity);
-        board[cell.x, cell.y] = GameManager.instance.isBlackTurn ? Stone.Black : Stone.White;
-        TryGameEnd(cell.x, cell.y);
+        return Succes;
+        //board[cell.x, cell.y] = GameManager.instance.isBlackTurn ? StoneSpawner.Black : StoneSpawner.White;
+        //TryGameEnd(cell.x, cell.y);
 
-        return true;
 
-    }
-    // tryGameEnd ¸¦ ¹İÈ¯°ªÀ» ¾îÄÉÇÔ? ¹İÈ¯°ªÀ» ÇöÀç µĞ µ¹ÀÇ »ö±òÀ» ±âÁØÀ¸·Î ÇÏÁÒ
-    // ¤¤¤¤ ±Ùº»ÀûÀÎ ¹®Á¦¿¡¼­ Á¢±ÙÇØ¾ßµÊ, ¸¸¾à µ¹À» µÎ°í ½Â¸® ÇØ´ÂÁö Ã¼Å©ÇÒ¶§ ¹éµ¹ÀÌ ½Â¸®
-    // Çß¾î¿ä ÇÏ¸é ´©°¡ ¹Ş¾ÆÁÙ°Å³Ä? -> GameManager °¡ ¹Ş¾Æ¾ßÁö ±×·³ ±×°É ÅëÇØ¼­ uiManager È£ÃâÇÏ°í
-    // ±×·³ ¹İÈ¯°ªÀ» Áà¾ßµÇ³ª?
 
-    // 5¸ñ Ã¼Å© ÇÔ¼ö
-    public void TryGameEnd(int x, int y)
-    {
-        Stone why = board[x, y];
-        for (int time = 0; time <= 7; ++time) // ´ë°¢¼± ¹× °¡·Î¼¼·Î Ã¼Å©°³¼ö
-        {
-            Debug.Log(time + " Å¸ÀÓ");
-            for (int check = 1; check <= 4; ++check) // µ¹ÀÌ 5°³ ¿¬¼ÓÀ¸·Î µÎ¾î¾ß µÊ
-            {
-                Debug.Log(check + " Ã¼Å©");
-                if (SelectStone(x,y,check,time))
-                {
-                    if (check == 4) // µ¹ÀÌ ¿¬¼Ó 5°³ µÇ¾ú´Â°É Ã¼Å© µÊ
-                    {
-                        GameManager.instance.isGameOverSet(true);
-                    }
-                    continue; 
-                }
-                break;
-            }
-        }
-    }
-    //
-    public bool SelectStone(int x, int y, int check, int time)
-    {
-        switch (time)
-        {
-            case 0: return board[x, y] == board[x - check, y - check];
-            case 1: return board[x, y] == board[x + check, y - check];
-            case 2: return board[x, y] == board[x - check, y + check];
-            case 3: return board[x, y] == board[x + check, y + check];
-            case 4: return board[x, y] == board[x - check, y];
-            case 5: return board[x, y] == board[x + check, y];
-            case 6: return board[x, y] == board[x, y - check];
-            case 7: return board[x, y] == board[x, y + check];
-            default: return false;
-        }
+
     }
 }
+    // tryGameEnd ë¥¼ ë°˜í™˜ê°’ì„ ì–´ì¼€í•¨? ë°˜í™˜ê°’ì„ í˜„ì¬ ë‘” ëŒì˜ ìƒ‰ê¹”ì„ ê¸°ì¤€ìœ¼ë¡œ í•˜ì£ 
+    // ã„´ã„´ ê·¼ë³¸ì ì¸ ë¬¸ì œì—ì„œ ì ‘ê·¼í•´ì•¼ë¨, ë§Œì•½ ëŒì„ ë‘ê³  ìŠ¹ë¦¬ í•´ëŠ”ì§€ ì²´í¬í• ë•Œ ë°±ëŒì´ ìŠ¹ë¦¬
+    // í–ˆì–´ìš” í•˜ë©´ ëˆ„ê°€ ë°›ì•„ì¤„ê±°ëƒ? -> GameManager ê°€ ë°›ì•„ì•¼ì§€ ê·¸ëŸ¼ ê·¸ê±¸ í†µí•´ì„œ uiManager í˜¸ì¶œí•˜ê³ 
+    // ê·¸ëŸ¼ ë°˜í™˜ê°’ì„ ì¤˜ì•¼ë˜ë‚˜?
+
+    // 5ëª© ì²´í¬ í•¨ìˆ˜
+//    public void TryGameEnd(int x, int y)
+//    {
+//        StoneSpawner why = board[x, y];
+//        for (int time = 0; time <= 7; ++time) // ëŒ€ê°ì„  ë° ê°€ë¡œì„¸ë¡œ ì²´í¬ê°œìˆ˜
+//        {
+//            Debug.Log(time + " íƒ€ì„");
+//            for (int check = 1; check <= 4; ++check) // ëŒì´ 5ê°œ ì—°ì†ìœ¼ë¡œ ë‘ì–´ì•¼ ë¨
+//            {
+//                Debug.Log(check + " ì²´í¬");
+//                if (SelectStone(x,y,check,time))
+//                {
+//                    if (check == 4) // ëŒì´ ì—°ì† 5ê°œ ë˜ì—ˆëŠ”ê±¸ ì²´í¬ ë¨
+//                    {
+//                        GameManager.instance.isGameOverSet(true);
+//                    }
+//                    continue; 
+//                }
+//                break;
+//            }
+//        }
+//    }
+//    //
+//    public bool SelectStone(int x, int y, int check, int time)
+//    {
+//        switch (time)
+//        {
+//            case 0: return board[x, y] == board[x - check, y - check];
+//            case 1: return board[x, y] == board[x + check, y - check];
+//            case 2: return board[x, y] == board[x - check, y + check];
+//            case 3: return board[x, y] == board[x + check, y + check];
+//            case 4: return board[x, y] == board[x - check, y];
+//            case 5: return board[x, y] == board[x + check, y];
+//            case 6: return board[x, y] == board[x, y - check];
+//            case 7: return board[x, y] == board[x, y + check];
+//            default: return false;
+//        }
+//    }
+//}
