@@ -1,4 +1,5 @@
 using NetworkClientApp;
+using Protocol;
 using UnityEngine;
 
 public class NetworkManager : MonoBehaviour
@@ -48,7 +49,36 @@ public class NetworkManager : MonoBehaviour
 
     private void HandlePacket(PacketEvent packet)
     {
-  
+        switch (packet.Type)
+        {
+            case PacketType.S2C_Welcome:
+                {
+                    ConnectPanel connectPanel = FindObjectOfType<ConnectPanel>();
+                    if (connectPanel != null)
+                    {
+                        connectPanel.HandleConnectSuccess();
+                    }
+                    break;
+                }
+            case PacketType.S2C_MatchFound:
+                {
+                    MatchPanel matchPanel = FindObjectOfType<MatchPanel>();
+                    if (matchPanel != null)
+                    {
+                        matchPanel.HandleMatchSuccess();
+                    }
+                    break;
+                }
+            case PacketType.S2C_MatchFail:
+                {
+                    MatchPanel matchPanel = FindObjectOfType<MatchPanel>();
+                    if (matchPanel != null)
+                    {
+                        matchPanel.HandleMatchFail();
+                    }
+                    break;
+                }
+        }
 
     }
     public bool Connect(string ip, int port)
