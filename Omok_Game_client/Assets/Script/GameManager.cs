@@ -1,16 +1,17 @@
+using Assets.Script;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
-
+    public PlaceSucces placeSucces;
     [SerializeField] MainBoard board;
     [SerializeField] InputManager InputManager;
     [SerializeField] UIManager UiManager;
 
     public bool isBlackTurn { get; private set; }
-    public bool isGameOver { get; private set; }
+    //public bool isGameOver { get; private set; }
     public int isTurn { get; private set; }
     private void Awake()
     {
@@ -19,38 +20,35 @@ public class GameManager : MonoBehaviour
             instance = this;
         }
         isBlackTurn = true;
-        isGameOver = false;
+        //isGameOver = false;
         isTurn = 0;
     }
     public void HandleBoardClick(Vector3 worldPoint)
     {
-        if (isGameOver)
+        if (PlaceSucces.Win == placeSucces)
         {
-            Debug.Log("°ÔÀÓ Á¾·á »óÅÂ");
+            Debug.Log("ê²Œì„ ì¢…ë£Œ ìƒíƒœ");
             return;
         }
-        // ¸ŞÀÎº¸µå ¼³Ä¡ ¹× ¼º°ø½Ã 
-        if (board.TryCreateStone(worldPoint) && isGameOver == false)
+        placeSucces = board.TryCreateStone(worldPoint);
+        // ë©”ì¸ë³´ë“œ ì„¤ì¹˜ ì‹¤íŒ¨ì‹œ 
+        if (placeSucces == PlaceSucces.None) return;
+        if (PlaceSucces.Win == placeSucces) // ê²Œì„ ìŠ¹ë¦¬ì‹œ
+        {
+            Debug.Log("ì„±ê³µ");
+            UiManager.GameOverUi();
+        }
+        else
         {
             ++isTurn;
             isBlackTurn = !isBlackTurn;
             UiManager.SetisTurn();
-            
-        }
-        else if (isGameOver) // °ÔÀÓ Á¾·á È®ÀÎ ¹× ui È£Ãâ
-        {
-            Debug.Log("¼º°ø");
-            UiManager.GameOverUi();
-        }
-        else 
-        { 
-          // µ¹ µÎ±â ½ÇÆĞ½Ã
         }
     }
-    public void isGameOverSet(bool check)
-    {
-        isGameOver = check;
-    }
+    //public void isGameOverSet(bool check)
+    //{
+    //    isGameOver = check;
+    //}
     public void GameReLoad()
     {
         SceneManager.LoadScene("MainScene");
