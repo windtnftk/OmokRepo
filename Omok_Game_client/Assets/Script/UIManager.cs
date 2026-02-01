@@ -13,8 +13,6 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject GameoverPanel;
     [SerializeField] private GameObject ConnectingPanel;
     [SerializeField] private GameObject MatchPanel;
-    [SerializeField] private ConnectPanel connectPanel;
-    [SerializeField] private MatchPanel matchPanel;
     [SerializeField] private string ServerIp = "127.0.0.1";
     [SerializeField] private int ServerPort = 9000;
 
@@ -31,9 +29,13 @@ public class UIManager : MonoBehaviour
     public void RequestConnect()
     {
         GameManager.instance.SetState(GameState.Connecting);
-        if (connectPanel != null)
+        if (ConnectingPanel != null)
         {
-            connectPanel.ShowConnectingText();
+            ConnectPanel panel = ConnectingPanel.GetComponent<ConnectPanel>();
+            if (panel != null)
+            {
+                panel.ShowConnectingText();
+            }
         }
         if (NetworkManager.Instance != null)
         {
@@ -48,9 +50,13 @@ public class UIManager : MonoBehaviour
     public void RequestMatch()
     {
         GameManager.instance.SetState(GameState.Matching);
-        if (matchPanel != null)
+        if (MatchPanel != null)
         {
-            matchPanel.ShowMatchingText();
+            MatchPanel panel = MatchPanel.GetComponent<MatchPanel>();
+            if (panel != null)
+            {
+                panel.ShowMatchingText();
+            }
         }
         if (NetworkManager.Instance != null)
         {
@@ -73,9 +79,13 @@ public class UIManager : MonoBehaviour
 
     public void OnConnectFail()
     {
-        if (connectPanel != null)
+        if (ConnectingPanel != null)
         {
-            connectPanel.ShowConnectFailText();
+            ConnectPanel panel = ConnectingPanel.GetComponent<ConnectPanel>();
+            if (panel != null)
+            {
+                panel.ShowConnectFailText();
+            }
         }
         GameManager.instance.SetState(GameState.ConnectFail);
     }
@@ -91,9 +101,13 @@ public class UIManager : MonoBehaviour
 
     public void OnMatchFail()
     {
-        if (matchPanel != null)
+        if (MatchPanel != null)
         {
-            matchPanel.ShowMatchFailText();
+            MatchPanel panel = MatchPanel.GetComponent<MatchPanel>();
+            if (panel != null)
+            {
+                panel.ShowMatchFailText();
+            }
         }
         GameManager.instance.SetState(GameState.Connected);
     }
