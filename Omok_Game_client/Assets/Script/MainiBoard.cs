@@ -40,7 +40,7 @@ public class MainBoard : MonoBehaviour
         // 6) 셀 중심 월드 좌표(= 스냅 위치)
 
         // 7) 돌 생성 & 보드 상태 갱신
-        Stone StoneCheck = GameManager.instance.isBlackTurn ? Stone.Black : Stone.White;
+        Stone StoneCheck = GameManager.instance.isMyTurn ? Stone.Black : Stone.White;
         Succes = logic.PlaceStone(cell.x, cell.y, StoneCheck);
         if (Succes == PlaceSucces.None) // 실패시
         {
@@ -50,7 +50,7 @@ public class MainBoard : MonoBehaviour
         var prefab = StoneCheck == Stone.Black ? BlackStonePrefab : WhiteStonePrefab;
         Instantiate(prefab, grid.GetCellCenterWorld(cell), Quaternion.identity);
         return Succes;
-        //board[cell.x, cell.y] = GameManager.instance.isBlackTurn ? StoneSpawner.Black : StoneSpawner.White;
+        //board[cell.x, cell.y] = GameManager.instance.isMyTurn ? StoneSpawner.Black : StoneSpawner.White;
         //TryGameEnd(cell.x, cell.y);
 
 

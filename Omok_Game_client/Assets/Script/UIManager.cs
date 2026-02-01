@@ -9,11 +9,14 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Sprite WhiteStone;
     [SerializeField] private Sprite BlackStone;
     [SerializeField] private GameObject GameoverPanel;
+    [SerializeField] private GameObject ConnectingPanel;
+    [SerializeField] private GameObject MatchPanel;
+
     public void SetisTurn()
     {
         string SettingWord = "TURN " + GameManager.instance.isTurn.ToString();
         m_TextMeshPro.SetText(SettingWord);
-        if (GameManager.instance.isBlackTurn == true)
+        if (GameManager.instance.isMyTurn == true)
         {
             myImage.sprite = BlackStone;
         }

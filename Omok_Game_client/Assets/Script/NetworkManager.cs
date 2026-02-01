@@ -48,6 +48,8 @@ public class NetworkManager : MonoBehaviour
 
     private void HandlePacket(PacketEvent packet)
     {
+  
+
     }
     public bool Connect(string ip, int port)
     {
