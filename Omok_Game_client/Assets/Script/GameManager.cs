@@ -27,15 +27,15 @@ public class GameManager : MonoBehaviour
     {
         if (PlaceSucces.Win == placeSucces)
         {
-            Debug.Log("ê²Œì„ ì¢…ë£Œ ìƒíƒœ");
+            Debug.Log("°ÔÀÓ Á¾·á »óÅÂ");
             return;
         }
         placeSucces = board.TryCreateStone(worldPoint);
-        // ë©”ì¸ë³´ë“œ ì„¤ì¹˜ ì‹¤íŒ¨ì‹œ 
+        // ¸ŞÀÎº¸µå ¼³Ä¡ ½ÇÆĞ½Ã 
         if (placeSucces == PlaceSucces.None) return;
-        if (PlaceSucces.Win == placeSucces) // ê²Œì„ ìŠ¹ë¦¬ì‹œ
+        if (PlaceSucces.Win == placeSucces) // °ÔÀÓ ½Â¸®½Ã
         {
-            Debug.Log("ì„±ê³µ");
+            Debug.Log("¼º°ø");
             UiManager.GameOverUi();
         }
         else
