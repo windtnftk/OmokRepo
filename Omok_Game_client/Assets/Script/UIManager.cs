@@ -13,7 +13,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject GameoverPanel;
     [SerializeField] private GameObject ConnectingPanel;
     [SerializeField] private GameObject MatchPanel;
-    [SerializeField] private string ServerIp = "127.0.0.1";
+    [SerializeField] private string ServerIp = "222.239.88.107";
     [SerializeField] private int ServerPort = 9000;
 
     private void Awake()
