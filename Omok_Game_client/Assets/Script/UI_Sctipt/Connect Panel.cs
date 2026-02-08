@@ -27,7 +27,7 @@ public class ConnectPanel : MonoBehaviour
         }
         if (C_TextMeshPro != null)
         {
-            C_TextMeshPro.SetText("연결중...");
+            C_TextMeshPro.SetText("Try Connecting...");
         }
     }
 
@@ -35,7 +35,7 @@ public class ConnectPanel : MonoBehaviour
     {
         if (C_TextMeshPro != null)
         {
-            C_TextMeshPro.SetText("연결 실패!");
+            C_TextMeshPro.SetText("Connect Fail!");
         }
         if (ConnectingButton != null)
         {

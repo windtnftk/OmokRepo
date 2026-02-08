@@ -19,7 +19,7 @@ public class MatchPanel: MonoBehaviour
     {
         if (M_TextMeshPro != null)
         {
-            M_TextMeshPro.SetText("매칭중...");
+            M_TextMeshPro.SetText("Try Matching...");
         }
         if (MatchingButton != null)
         {
@@ -35,7 +35,7 @@ public class MatchPanel: MonoBehaviour
     {
         if (M_TextMeshPro != null)
         {
-            M_TextMeshPro.SetText("매칭 실패!");
+            M_TextMeshPro.SetText("Matching false!");
         }
         if (MatchingButton != null)
         {

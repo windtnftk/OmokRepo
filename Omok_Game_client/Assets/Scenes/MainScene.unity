@@ -380,6 +380,8 @@ MonoBehaviour:
   GameoverPanel: {fileID: 501340513}
   ConnectingPanel: {fileID: 458264957}
   MatchPanel: {fileID: 2141043988}
+  ServerIp: 222.239.88.107
+  ServerPort: 9000
 --- !u!1 &162198959
 GameObject:
   m_ObjectHideFlags: 0
@@ -512,9 +514,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Omok Game Server Connecting
-
-'
+  m_text: Omok Game Server Matching
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
