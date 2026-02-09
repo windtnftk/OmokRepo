@@ -25,6 +25,7 @@ namespace Protocol
         C2S_PlaceStoneRequest = 1001,       // 돌 두기 요청 (x,y)
         C2S_Ping = 1002,                    // 통신 확인 요청(핑) (옵션: clientTick)
         C2S_ChatMessage = 1003,             // 채팅 메시지 전송 (len + utf8 bytes)
+        C2S_Pong = 1004,                    // 서버 Ping에 대한 응답
         C2S_MatchRequest = 1010,            // 매칭 요청
         C2S_EndGame = 1011,                 // 게임 종료 알림
 
@@ -46,6 +47,7 @@ namespace Protocol
         S2C_Error = 2005,                   // 오류 응답 (msg)
         S2C_MatchFound = 2010,              // 매칭 완료 (roomId + myColor + isMyTurn)
         S2C_MatchFail = 2011,                 // 매칭 실패 (reasonCode)
+        S2C_Ping = 2014,                    // 서버 keepalive 핑
         //S2C_StateSnapshot = 2005,           // 상태 스냅샷 (state + roomId + myColor + turnColor + ...)
 
         //S2C_MatchFound = 2010,              // 상대 찾음/룸 생성됨 (roomId + myColor 등)

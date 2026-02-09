@@ -41,5 +41,17 @@ namespace NetworkSend
             byte[] payloadBytes = PacketSerializer.MakeMatchFound(roomId, myColor, turnFlag);
             return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.S2C_MatchFound, payloadBytes, (uint)payloadBytes.Length);
         }
+
+        public static bool MatchFail(Socket socket)
+        {
+            byte[] payloadBytes = PacketSerializer.BuildEmpty();
+            return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.S2C_MatchFail, payloadBytes, (uint)payloadBytes.Length);
+        }
+
+        public static bool Ping(Socket socket)
+        {
+            byte[] payloadBytes = PacketSerializer.BuildEmpty();
+            return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.S2C_Ping, payloadBytes, (uint)payloadBytes.Length);
+        }
     }
 }
