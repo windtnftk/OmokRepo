@@ -430,3 +430,5 @@ Desktop.ini
 # Optional: local tools
 **/.vsconfig
 
+!shared/ClassLibrary456/ClassLibrary456.csproj
+
