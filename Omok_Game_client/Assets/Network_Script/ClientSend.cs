@@ -34,6 +34,13 @@ namespace NetworkSend
             return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.C2S_MatchRequest, payload, (uint)payload.Length);
         }
 
+        // 역할: 서버 Ping에 대한 Pong 패킷을 전송한다.
+        public static bool Pong(Socket socket)
+        {
+            byte[] payload = PacketSerializer.BuildEmpty();
+            return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.C2S_Pong, payload, (uint)payload.Length);
+        }
+
         // 역할: 게임 종료 알림 패킷을 전송한다.
         public static bool EndGame(Socket socket)
         {

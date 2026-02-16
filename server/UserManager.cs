@@ -74,6 +74,14 @@ namespace ServerApp
             return false;
         }
 
+        public List<SessionInfo> GetSessionSnapshot()
+        {
+            lock (_lock)
+            {
+                return new List<SessionInfo>(_users.Values);
+            }
+        }
+
         // 역할: 사용자 상태를 변경한다.
         public void SetState(int userId, UserState state)
         {

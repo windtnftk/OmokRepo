@@ -153,6 +153,15 @@ namespace NetworkClientApp
                         break;
                     }
 
+                    if (type == PacketType.S2C_Ping)
+                    {
+                        lock (_sendLock)
+                        {
+                            ClientSend.Pong(_socket);
+                        }
+                        continue;
+                    }
+
                     _recvQueue.Enqueue(new PacketEvent(type, payload));
                 }
                 catch (SocketException)

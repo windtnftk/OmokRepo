@@ -14,6 +14,9 @@ namespace ServerApp
     {
         private const int Port = 9000;
         private const int MaxClients = 2;
+        private const long PingIntervalMs = 5000;
+        private const long TimeoutMs = 15000;
+        private const long MatchTimeoutMs = 30000;
 
         private readonly Socket _listenSocket;
         private readonly ConcurrentDictionary<ClientSession, Thread> _pendingSessions = new();
@@ -27,6 +30,8 @@ namespace ServerApp
         private int _clientCount = 0;
         private int _nextRoomId = 1;
         private int? _waitingUserId;
+        private long _waitingUserEnqueueTick;
+        private long _lastHeartbeatTick;
         private bool _disposed;
 
         // 역할: 서버 리슨 소켓을 초기화한다.
@@ -56,6 +61,7 @@ namespace ServerApp
             _listenSocket.Bind(new IPEndPoint(IPAddress.Any, Port));
             _listenSocket.Listen(int.MaxValue);
             _running = true;
+            _lastHeartbeatTick = Environment.TickCount64;
 
             _acceptThread = new Thread(AcceptLoop) { IsBackground = true };
             _logicThread = new Thread(LogicLoop) { IsBackground = true };
@@ -199,9 +205,18 @@ namespace ServerApp
                 {
                     if (!Protocol_IO.ProtocolIO.ReceivePacket(session.Socket, out PacketType packetType, out byte[] payloadBytes))
                     {
-                        LogDisconnectOrError(ipPort);
+                        if (handshakeDone)
+                        {
+                            Console.WriteLine($"접속 종료: userId={userId}, reason=recv-failed");
+                        }
+                        else
+                        {
+                            LogDisconnectOrError(ipPort);
+                        }
                         break;
                     }
+
+                    session.LastSeenTick = Environment.TickCount64;
 
                     if (!handshakeDone)
                     {
@@ -282,6 +297,18 @@ namespace ServerApp
                     HandlePacketEvent(packetEvent);
                 }
 
+                long now = Environment.TickCount64;
+                if (now - _lastHeartbeatTick >= PingIntervalMs)
+                {
+                    UpdateHeartbeat(now);
+                    _lastHeartbeatTick = now;
+                }
+
+                if (_waitingUserId.HasValue && now - _waitingUserEnqueueTick >= MatchTimeoutMs)
+                {
+                    HandleMatchTimeout();
+                }
+
                 Thread.Sleep(10);
             }
 
@@ -313,6 +340,9 @@ namespace ServerApp
                     break;
                 case PacketType.C2S_MatchRequest:
                     HandleMatchRequest(packetEvent.UserId);
+                    break;
+                case PacketType.C2S_Pong:
+                case PacketType.C2S_Ping:
                     break;
                 case PacketType.C2S_PlaceStoneRequest:
                     HandlePlaceStoneRequest(packetEvent.UserId, session.Socket, ipPort, packetEvent.Payload);
@@ -404,6 +434,7 @@ namespace ServerApp
             if (_waitingUserId == null)
             {
                 _waitingUserId = userId;
+                _waitingUserEnqueueTick = Environment.TickCount64;
                 return;
             }
 
@@ -429,6 +460,7 @@ namespace ServerApp
             _userManager.SetState(opponentId, UserState.InRoom);
             _userManager.SetState(userId, UserState.InRoom);
             _waitingUserId = null;
+            _waitingUserEnqueueTick = 0;
 
             if (_userManager.TryGetSession(opponentId, out ClientSession opponentSession))
             {
@@ -475,9 +507,66 @@ namespace ServerApp
                     if (_waitingUserId == systemEvent.UserId)
                     {
                         _waitingUserId = null;
+                        _waitingUserEnqueueTick = 0;
                     }
                     _userManager.OnDisconnect(systemEvent.UserId);
                     break;
+            }
+        }
+
+        private void HandleMatchTimeout()
+        {
+            int userId = _waitingUserId ?? 0;
+            _waitingUserId = null;
+            _waitingUserEnqueueTick = 0;
+
+            if (userId == 0)
+            {
+                return;
+            }
+
+            if (_userManager.TryGetSession(userId, out ClientSession session) && session != null && !session.IsClosed)
+            {
+                ServerSend.MatchFail(session.Socket);
+                _userManager.SetState(userId, UserState.Connected);
+            }
+        }
+
+        private void UpdateHeartbeat(long now)
+        {
+            List<SessionInfo> sessions = _userManager.GetSessionSnapshot();
+            foreach (var info in sessions)
+            {
+                ClientSession session = info.Session;
+                if (session == null || session.IsClosed)
+                {
+                    continue;
+                }
+
+                if (now - session.LastSeenTick >= TimeoutMs)
+                {
+                    Console.WriteLine($"세션 타임아웃 종료: userId={info.UserId}, reason=timeout");
+                    if (_waitingUserId == info.UserId)
+                    {
+                        _waitingUserId = null;
+                        _waitingUserEnqueueTick = 0;
+                    }
+                    SafeCloseSession(session);
+                    continue;
+                }
+
+                if (now - session.LastPingSentTick >= PingIntervalMs)
+                {
+                    if (ServerSend.Ping(session.Socket))
+                    {
+                        session.LastPingSentTick = now;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"세션 Ping 전송 실패: userId={info.UserId}, reason=send-failed");
+                        SafeCloseSession(session);
+                    }
+                }
             }
         }
 
@@ -505,6 +594,11 @@ namespace ServerApp
         private static void SafeCloseSession(ClientSession session)
         {
             if (session?.Socket == null)
+            {
+                return;
+            }
+
+            if (!session.TryMarkClosed())
             {
                 return;
             }
