@@ -5,8 +5,10 @@ using UnityEngine;
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance { get; private set; }
+    public bool MockUse = false;
+    [SerializeField] private MainBoard mainBoard;
 
-    private NetworkClient _client; // 니가 만든 클래스
+    private INetworkClient _client; // 니가 만든 클래스
 
     void Awake()
     {
@@ -19,13 +21,23 @@ public class NetworkManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        _client = new NetworkClient();
+        _client = MockUse
+            ? new MockNetworkClient()
+            : new NetworkClient();
+
+        if (mainBoard == null)
+        {
+            mainBoard = FindObjectOfType<MainBoard>();
+        }
     }
 
     // : ä û Ѵ.
     public void RequestWord(string msg)
     {
-        _client.SendWord(msg);
+        if (_client is NetworkClient networkClient)
+        {
+            networkClient.SendWord(msg);
+        }
     }
 
     // :  ǥ û Ѵ.
@@ -75,6 +87,42 @@ public class NetworkManager : MonoBehaviour
                     }
                     break;
                 }
+            case PacketType.S2C_PlaceStoneAck:
+                {
+                    bool success;
+                    uint x;
+                    uint y;
+                    uint stone;
+
+                    if (packet.HasPlaceStoneAckData)
+                    {
+                        success = packet.PlaceStoneSuccess;
+                        x = packet.PlaceX;
+                        y = packet.PlaceY;
+                        stone = packet.PlaceStone;
+                    }
+                    else
+                    {
+                        success = PacketSerializer.TryParsePlace(packet.Payload, out x, out y);
+                        stone = GameManager.instance != null && GameManager.instance.isMyTurn ? 1u : 2u;
+                    }
+
+                    if (success)
+                    {
+                        if (mainBoard != null)
+                        {
+                            mainBoard.ApplyPlace(x, y, stone);
+                        }
+                    }
+                    else
+                    {
+                        if (GameManager.instance != null)
+                        {
+                            GameManager.instance.OnPlaceRejected();
+                        }
+                    }
+                    break;
+                }
         }
 
     }
@@ -86,7 +134,10 @@ public class NetworkManager : MonoBehaviour
     // 역할: 서버 연결을 종료한다.
     public void Disconnect()
     {
-        _client.Disconnect();
+        if (_client is NetworkClient networkClient)
+        {
+            networkClient.Disconnect();
+        }
     }
 
     // 역할: 매칭 요청을 보낸다(예시).
