@@ -5,7 +5,7 @@ using UnityEngine;
 public class NetworkManager : MonoBehaviour
 {
     public static NetworkManager Instance { get; private set; }
-    public bool MockUse = false;
+    public bool MockUse = true;
     [SerializeField] private MainBoard mainBoard;
 
     private INetworkClient _client; // 니가 만든 클래스
@@ -27,7 +27,7 @@ public class NetworkManager : MonoBehaviour
 
         if (mainBoard == null)
         {
-            mainBoard = FindObjectOfType<MainBoard>();
+            mainBoard = FindAnyObjectByType<MainBoard>();
         }
     }
 

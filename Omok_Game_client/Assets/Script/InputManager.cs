@@ -4,11 +4,20 @@ using UnityEngine.InputSystem;
 
 public class InputManager : MonoBehaviour
 {
-    //[field: SerializeField] public MainBoard Board { get; private set; }
-    //int[,] x = new int[5, 5];
+    private bool _clickRequested;
+
+    // InputAction 이벤트에서 호출(콜백)
     public void OnClickAction()
     {
-        // 0) UI 위 클릭이면 무시 (패널 덮여있을 때도 안전)
+        _clickRequested = true; // 여기서 UI 체크하지 말기
+    }
+
+    private void Update()
+    {
+        if (!_clickRequested) return;
+        _clickRequested = false;
+
+        // 0) UI 위 클릭이면 무시 (이번 프레임 UI 상태 기준이라 안전)
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             return;
 
@@ -16,12 +25,12 @@ public class InputManager : MonoBehaviour
         if (!GameManager.instance.CanProcessBoardClick())
             return;
 
-        // 1) 스크린 → 월드
+        // 2) 스크린 → 월드
+        if (Camera.main == null || Mouse.current == null) return;
+
         Vector3 worldPos = Camera.main.ScreenToWorldPoint(Mouse.current.position.ReadValue());
         worldPos.z = 0f;
-        Debug.Log(worldPos.x);
-        Debug.Log(worldPos.y);
-        GameManager.instance.HandleBoardClick(worldPos);
 
+        GameManager.instance.HandleBoardClick(worldPos);
     }
 }
