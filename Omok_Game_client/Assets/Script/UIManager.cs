@@ -6,7 +6,9 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
-    [SerializeField] private TextMeshProUGUI m_TextMeshPro;
+    [SerializeField] private TextMeshProUGUI TurnText;
+    [SerializeField] private TextMeshProUGUI YourTurnText;
+    [SerializeField] private TextMeshProUGUI ConnectingText;
     [SerializeField] private Image myImage;
     [SerializeField] private Sprite WhiteStone;
     [SerializeField] private Sprite BlackStone;
@@ -115,13 +117,15 @@ public class UIManager : MonoBehaviour
     public void SetisTurn()
     {
         string SettingWord = "TURN " + GameManager.instance.isTurn.ToString();
-        m_TextMeshPro.SetText(SettingWord);
+        TurnText.SetText(SettingWord);
         if (GameManager.instance.isMyTurn == true)
         {
+            YourTurnText.SetText("Your Turn");
             myImage.sprite = BlackStone;
         }
         else
         {
+            YourTurnText.SetText("Opponent's Turn");
             myImage.sprite = WhiteStone;
         }
     }
