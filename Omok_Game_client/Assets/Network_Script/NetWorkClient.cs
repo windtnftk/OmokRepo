@@ -8,7 +8,7 @@ using NetworkSend;
 
 namespace NetworkClientApp
 {
-    public class NetworkClient : IDisposable
+    public class NetworkClient : INetworkClient, IDisposable
     {
         private readonly ConcurrentQueue<PacketEvent> _recvQueue = new();
         private readonly object _sendLock = new();
@@ -106,26 +106,26 @@ namespace NetworkClientApp
         }
 
         // 역할: 매칭 요청을 서버로 전송한다.
-        public bool SendMatchRequest()
+        public void SendMatchRequest()
         {
-            if (!_connected || _socket == null) return false;
+            if (!_connected || _socket == null) return;
 
             lock (_sendLock)
             {
                 // send/recv 스레드에서 소켓 동시 접근 방지
-                return ClientSend.MatchRequest(_socket);
+                ClientSend.MatchRequest(_socket);
             }
         }
 
         // 역할: 착수 좌표를 서버로 전송한다.
-        public bool SendPosition(uint x, uint y)
+        public void SendPosition(uint x, uint y)
         {
-            if (!_connected || _socket == null) return false;
+            if (!_connected || _socket == null) return;
 
             lock (_sendLock)
             {
                 // send/recv 스레드에서 소켓 동시 접근 방지
-                return ClientSend.Place(_socket, x, y);
+                ClientSend.Place(_socket, x, y);
             }
         }
 

@@ -4,14 +4,15 @@ using UnityEngine.SceneManagement;
 
 public enum GameState
 {
-    None,           // æ€ ƒ—¡¯ ¡˜»ƒ
-    Connecting,     // º≠πˆ ø¨∞· Ω√µµ¡ﬂ
-    ConnectFail,    // ø¨∞· Ω«∆–
-    Connected,      // º≠πˆ ø¨∞· øœ∑·
-    Matching,       // ∏≈ƒ™ ø‰√ª¡ﬂ
-    InGame,         // ∞‘¿” ¡¯«‡¡ﬂ
-    GameOver        // ∞‘¿” ¡æ∑·
+    None,
+    Connecting,
+    ConnectFail,
+    Connected,
+    Matching,
+    InGame,
+    GameOver
 }
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
@@ -22,8 +23,9 @@ public class GameManager : MonoBehaviour
 
     public GameState State { get; private set; } = GameState.None;
     public bool isMyTurn { get; private set; }
-    //public bool isGameOver { get; private set; }
     public int isTurn { get; private set; }
+    public bool IsPlaceRequestPending { get; private set; }
+
     private void Awake()
     {
         if (instance == null)
@@ -31,29 +33,41 @@ public class GameManager : MonoBehaviour
             instance = this;
         }
         isMyTurn = true;
-        //isGameOver = false;
         isTurn = 0;
+        IsPlaceRequestPending = false;
     }
+
     public bool CanProcessBoardClick()
     {
-        // ∞‘¿” ¡ﬂ + ≥ª ≈œ¿œ ∂ß∏∏ ≈¨∏Ø «„øÎ
-        return (State == GameState.InGame) && isMyTurn;
+        return (State == GameState.InGame) && isMyTurn && !IsPlaceRequestPending;
     }
 
     public void SetState(GameState s) => State = s;
+
     public void HandleBoardClick(Vector3 worldPoint)
     {
         if (PlaceSucces.Win == placeSucces)
         {
-            Debug.Log("∞‘¿” ¡æ∑· ªÛ≈¬");
+            Debug.Log("Í≤åÏûÑ Ï¢ÖÎ£å ÏÉÅÌÉú");
             return;
         }
-        placeSucces = board.TryCreateStone(worldPoint);
-        // ∏ﬁ¿Œ∫∏µÂ º≥ƒ° Ω«∆–Ω√ 
-        if (placeSucces == PlaceSucces.None) return;
-        if (PlaceSucces.Win == placeSucces) // ∞‘¿” Ω¬∏ÆΩ√
+
+        board.RequestPlace(worldPoint);
+    }
+
+    public void OnPlaceRequestSent()
+    {
+        IsPlaceRequestPending = true;
+    }
+
+    public void OnPlaceApplied(PlaceSucces success)
+    {
+        IsPlaceRequestPending = false;
+        placeSucces = success;
+
+        if (PlaceSucces.Win == placeSucces)
         {
-            Debug.Log("º∫∞¯");
+            Debug.Log("ÏäπÎ¶¨");
             UiManager.GameOverUi();
         }
         else
@@ -63,10 +77,12 @@ public class GameManager : MonoBehaviour
             UiManager.SetisTurn();
         }
     }
-    //public void isGameOverSet(bool check)
-    //{
-    //    isGameOver = check;
-    //}
+
+    public void OnPlaceRejected()
+    {
+        IsPlaceRequestPending = false;
+    }
+
     public void GameReLoad()
     {
         SceneManager.LoadScene("MainScene");
