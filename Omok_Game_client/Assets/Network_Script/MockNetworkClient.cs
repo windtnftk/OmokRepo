@@ -30,11 +30,11 @@ namespace NetworkClientApp
             EnqueueDelayed(new PacketEvent(PacketType.S2C_MatchFound, PacketSerializer.MakeMatchFound(1, 1u, 1u)));
         }
 
-        public void SendPosition(uint x, uint y)
+        public bool SendPosition(uint x, uint y)
         {
             if (!_connected)
             {
-                return;
+                return false;
             }
 
             bool success = false;
@@ -51,6 +51,7 @@ namespace NetworkClientApp
             }
 
             EnqueueDelayed(new PacketEvent(PacketType.S2C_PlaceStoneAck, Array.Empty<byte>(), success, x, y, stone));
+            return true;
         }
 
         public bool TryDequeue(out PacketEvent packet)

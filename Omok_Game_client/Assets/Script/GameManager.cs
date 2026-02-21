@@ -25,6 +25,8 @@ public class GameManager : MonoBehaviour
     public bool isMyTurn { get; private set; }
     public int isTurn { get; private set; }
     public bool IsPlaceRequestPending { get; private set; }
+    private float pendingSince;
+    private const float PlacePendingTimeoutSeconds = 2.0f;
 
     private void Awake()
     {
@@ -35,6 +37,16 @@ public class GameManager : MonoBehaviour
         isMyTurn = true;
         isTurn = 0;
         IsPlaceRequestPending = false;
+        pendingSince = 0f;
+    }
+
+
+    private void Update()
+    {
+        if (IsPlaceRequestPending && (Time.time - pendingSince) > PlacePendingTimeoutSeconds)
+        {
+            OnPlaceRejected("timeout");
+        }
     }
 
     public bool CanProcessBoardClick()
@@ -58,11 +70,13 @@ public class GameManager : MonoBehaviour
     public void OnPlaceRequestSent()
     {
         IsPlaceRequestPending = true;
+        pendingSince = Time.time;
     }
 
     public void OnPlaceApplied(PlaceSucces success)
     {
         IsPlaceRequestPending = false;
+        pendingSince = 0f;
         placeSucces = success;
 
         if (PlaceSucces.Win == placeSucces)
@@ -78,9 +92,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void OnPlaceRejected()
+    public void OnPlaceRejected(string reason = null)
     {
         IsPlaceRequestPending = false;
+        pendingSince = 0f;
     }
 
     public void GameReLoad()
