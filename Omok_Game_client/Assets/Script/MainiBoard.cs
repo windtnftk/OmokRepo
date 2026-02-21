@@ -31,10 +31,17 @@ public class MainBoard : MonoBehaviour
 
         if (NetworkManager.Instance != null)
         {
-            NetworkManager.Instance.RequestPosition((uint)cell.x, (uint)cell.y);
+            bool sent = NetworkManager.Instance.RequestPosition((uint)cell.x, (uint)cell.y);
             if (GameManager.instance != null)
             {
-                GameManager.instance.OnPlaceRequestSent();
+                if (sent)
+                {
+                    GameManager.instance.OnPlaceRequestSent();
+                }
+                else
+                {
+                    GameManager.instance.OnPlaceRejected("send failed");
+                }
             }
         }
     }

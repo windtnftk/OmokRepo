@@ -41,9 +41,9 @@ public class NetworkManager : MonoBehaviour
     }
 
     // :  ǥ û Ѵ.
-    public void RequestPosition(uint x, uint y)
+    public bool RequestPosition(uint x, uint y)
     {
-        _client.SendPosition(x, y);
+        return _client.SendPosition(x, y);
     }
 
     void Update()
@@ -114,12 +114,17 @@ public class NetworkManager : MonoBehaviour
                             mainBoard.ApplyPlace(x, y, stone);
                         }
                     }
-                    else
+                    else if (GameManager.instance != null)
                     {
-                        if (GameManager.instance != null)
-                        {
-                            GameManager.instance.OnPlaceRejected();
-                        }
+                        GameManager.instance.OnPlaceRejected("place rejected");
+                    }
+                    break;
+                }
+            case PacketType.S2C_Error:
+                {
+                    if (GameManager.instance != null)
+                    {
+                        GameManager.instance.OnPlaceRejected(PacketSerializer.ParseString(packet.Payload));
                     }
                     break;
                 }

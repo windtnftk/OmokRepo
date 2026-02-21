@@ -118,14 +118,21 @@ namespace NetworkClientApp
         }
 
         // 역할: 착수 좌표를 서버로 전송한다.
-        public void SendPosition(uint x, uint y)
+        public bool SendPosition(uint x, uint y)
         {
-            if (!_connected || _socket == null) return;
+            if (!_connected || _socket == null) return false;
 
-            lock (_sendLock)
+            try
             {
-                // send/recv 스레드에서 소켓 동시 접근 방지
-                ClientSend.Place(_socket, x, y);
+                lock (_sendLock)
+                {
+                    // send/recv 스레드에서 소켓 동시 접근 방지
+                    return ClientSend.Place(_socket, x, y);
+                }
+            }
+            catch
+            {
+                return false;
             }
         }
 
