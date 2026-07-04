@@ -101,6 +101,7 @@ public class UIManager : MonoBehaviour
             MatchPanel.SetActive(false);
         }
         GameManager.instance.SetState(GameState.InGame);
+        SetisTurn();
     }
 
     public void OnMatchFail()
@@ -123,13 +124,13 @@ public class UIManager : MonoBehaviour
         if (GameManager.instance.isMyTurn == true)
         {
             YourTurnText.SetText("Your Turn");
-            myImage.sprite = BlackStone;
         }
         else
         {
             YourTurnText.SetText("Opponent's Turn");
-            myImage.sprite = WhiteStone;
         }
+
+        myImage.sprite = GameManager.instance.myColor == 2u ? WhiteStone : BlackStone;
     }
     public void GameOverUi()
     {

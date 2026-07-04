@@ -401,7 +401,7 @@ namespace ServerApp
                 return;
             }
 
-            if (!room.TryPlace(userId, x, y, out string rejectReason))
+            if (!room.TryPlace(userId, x, y, out Stone placedStone, out string? rejectReason))
             {
                 ServerSend.Error(clientSocket, rejectReason ?? "invalid move");
                 return;
@@ -411,7 +411,7 @@ namespace ServerApp
             {
                 if (_userManager.TryGetSession(playerId, out ClientSession playerSession))
                 {
-                    ServerSend.PlaceStoneAck(playerSession.Socket, x, y);
+                    ServerSend.PlaceStoneAck(playerSession.Socket, x, y, (uint)placedStone);
                 }
             }
         }

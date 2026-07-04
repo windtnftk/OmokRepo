@@ -73,9 +73,21 @@ public class NetworkManager : MonoBehaviour
                 }
             case PacketType.S2C_MatchFound:
                 {
-                    if (UIManager.Instance != null)
+                    if (PacketSerializer.TryParseMatchFound(packet.Payload, out int roomId, out uint myColor, out uint isMyTurn))
                     {
-                        UIManager.Instance.OnMatchFound();
+                        if (GameManager.instance != null)
+                        {
+                            GameManager.instance.InitializeMatch(roomId, myColor, isMyTurn != 0u);
+                        }
+
+                        if (UIManager.Instance != null)
+                        {
+                            UIManager.Instance.OnMatchFound();
+                        }
+                    }
+                    else if (GameManager.instance != null)
+                    {
+                        GameManager.instance.OnPlaceRejected("bad match payload");
                     }
                     break;
                 }
@@ -103,8 +115,7 @@ public class NetworkManager : MonoBehaviour
                     }
                     else
                     {
-                        success = PacketSerializer.TryParsePlace(packet.Payload, out x, out y);
-                        stone = GameManager.instance != null && GameManager.instance.isMyTurn ? 1u : 2u;
+                        success = PacketSerializer.TryParsePlaceStoneAck(packet.Payload, out x, out y, out stone);
                     }
 
                     if (success)

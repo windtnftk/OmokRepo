@@ -43,8 +43,9 @@ namespace ServerApp
         }
 
         // 역할: 착수 가능 여부를 검증하고 돌을 놓는다.
-        public bool TryPlace(int userId, uint x, uint y, out string rejectReason)
+        public bool TryPlace(int userId, uint x, uint y, out Stone placedStone, out string? rejectReason)
         {
+            placedStone = Stone.Empty;
             rejectReason = null;
 
             if (State != RoomState.Playing)
@@ -71,7 +72,8 @@ namespace ServerApp
                 return false;
             }
 
-            _board[x, y] = userId == PlayerAId ? Stone.Black : Stone.White;
+            placedStone = userId == PlayerAId ? Stone.Black : Stone.White;
+            _board[x, y] = placedStone;
             CurrentTurnUserId = GetOpponentId(userId);
             return true;
         }

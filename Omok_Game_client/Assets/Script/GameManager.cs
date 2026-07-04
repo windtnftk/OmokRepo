@@ -24,6 +24,9 @@ public class GameManager : MonoBehaviour
     public GameState State { get; private set; } = GameState.None;
     public bool isMyTurn { get; private set; }
     public int isTurn { get; private set; }
+    public int currentRoomId { get; private set; }
+    public uint myColor { get; private set; }
+    public uint opponentColor { get; private set; }
     public bool IsPlaceRequestPending { get; private set; }
     private float pendingSince;
     private const float PlacePendingTimeoutSeconds = 2.0f;
@@ -36,6 +39,9 @@ public class GameManager : MonoBehaviour
         }
         isMyTurn = true;
         isTurn = 0;
+        currentRoomId = 0;
+        myColor = 1u;
+        opponentColor = 2u;
         IsPlaceRequestPending = false;
         pendingSince = 0f;
     }
@@ -55,6 +61,17 @@ public class GameManager : MonoBehaviour
     }
 
     public void SetState(GameState s) => State = s;
+
+    public void InitializeMatch(int roomId, uint assignedColor, bool assignedTurn)
+    {
+        currentRoomId = roomId;
+        myColor = assignedColor == 2u ? 2u : 1u;
+        opponentColor = myColor == 1u ? 2u : 1u;
+        isMyTurn = assignedTurn;
+        isTurn = 0;
+        IsPlaceRequestPending = false;
+        pendingSince = 0f;
+    }
 
     public void HandleBoardClick(Vector3 worldPoint)
     {

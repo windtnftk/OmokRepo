@@ -7,6 +7,7 @@ namespace Protocol
     public static class PacketSerializer
     {
         public const uint PositionPayloadSize = 8u;
+        public const uint PlaceStoneAckPayloadSize = 12u;
         private const int MatchFoundPayloadSize = 12;
 
         // 역할: 핸드셰이크용 문자열 payload를 생성한다.
@@ -45,6 +46,16 @@ namespace Protocol
             var payloadBuffer = new byte[PositionPayloadSize];
             BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(0, 4), x);
             BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(4, 4), y);
+            return payloadBuffer;
+        }
+
+        // 역할: 착수 승인 payload를 생성한다.
+        public static byte[] BuildPlaceStoneAck(uint x, uint y, uint stone)
+        {
+            var payloadBuffer = new byte[PlaceStoneAckPayloadSize];
+            BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(0, 4), x);
+            BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(4, 4), y);
+            BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(8, 4), stone);
             return payloadBuffer;
         }
 
@@ -102,6 +113,24 @@ namespace Protocol
 
             outX = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(0, 4));
             outY = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(4, 4));
+            return true;
+        }
+
+        // 역할: 착수 승인 payload를 파싱한다.
+        public static bool TryParsePlaceStoneAck(ReadOnlySpan<byte> payload, out uint outX, out uint outY, out uint stone)
+        {
+            outX = 0;
+            outY = 0;
+            stone = 0;
+
+            if (payload.Length != PlaceStoneAckPayloadSize)
+            {
+                return false;
+            }
+
+            outX = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(0, 4));
+            outY = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(4, 4));
+            stone = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(8, 4));
             return true;
         }
 

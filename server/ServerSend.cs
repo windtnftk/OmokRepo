@@ -21,9 +21,9 @@ namespace NetworkSend
         }
 
         // 역할: 착수 승인 패킷을 전송한다.
-        public static bool PlaceStoneAck(Socket socket, uint x, uint y)
+        public static bool PlaceStoneAck(Socket socket, uint x, uint y, uint stone)
         {
-            byte[] payloadBytes = PacketSerializer.BuildPlace(x, y);
+            byte[] payloadBytes = PacketSerializer.BuildPlaceStoneAck(x, y, stone);
             return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.S2C_PlaceStoneAck, payloadBytes, (uint)payloadBytes.Length);
         }
 
