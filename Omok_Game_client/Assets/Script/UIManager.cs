@@ -9,14 +9,14 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI TurnText;
     [SerializeField] private TextMeshProUGUI YourTurnText;
     [SerializeField] private TextMeshProUGUI ConnectingText;
-    [SerializeField] private TextMeshProUGUI PendingText;
+    //[SerializeField] private TextMeshProUGUI PendingText;
     [SerializeField] private Image myImage;
     [SerializeField] private Sprite WhiteStone;
     [SerializeField] private Sprite BlackStone;
     [SerializeField] private GameObject GameoverPanel;
     [SerializeField] private GameObject ConnectingPanel;
     [SerializeField] private GameObject MatchPanel;
-    [SerializeField] private GameObject PendingPanel;
+    //[SerializeField] private GameObject PendingPanel;
     [SerializeField] private string ServerIp = "222.239.88.107";
     [SerializeField] private int ServerPort = 9000;
 
