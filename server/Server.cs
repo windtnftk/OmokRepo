@@ -17,6 +17,7 @@ namespace ServerApp
         private const long PingIntervalMs = 5000;
         private const long TimeoutMs = 15000;
         private const long MatchTimeoutMs = 30000;
+        private const long StatusIntervalMs = 10000;
 
         private readonly Socket _listenSocket;
         private readonly ConcurrentDictionary<ClientSession, Thread> _pendingSessions = new();
@@ -32,6 +33,7 @@ namespace ServerApp
         private int? _waitingUserId;
         private long _waitingUserEnqueueTick;
         private long _lastHeartbeatTick;
+        private long _lastStatusTick;
         private bool _disposed;
 
         // 역할: 서버 리슨 소켓을 초기화한다.
@@ -62,6 +64,7 @@ namespace ServerApp
             _listenSocket.Listen(int.MaxValue);
             _running = true;
             _lastHeartbeatTick = Environment.TickCount64;
+            _lastStatusTick = _lastHeartbeatTick;
 
             _acceptThread = new Thread(AcceptLoop) { IsBackground = true };
             _logicThread = new Thread(LogicLoop) { IsBackground = true };
@@ -69,7 +72,7 @@ namespace ServerApp
             _acceptThread.Start();
             _logicThread.Start();
 
-            Console.WriteLine($"서버 ON : {Port} (멀티 클라)");
+            LogInfo("SERVER", $"port={Port} event=start startedAt=\"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}\"");
         }
 
         // 역할: 서버 종료 신호를 기다린다.
@@ -198,6 +201,7 @@ namespace ServerApp
             Protocol.IP_Port ipPort = Protocol_IO.ProtocolIO.GetIpPort(session.EndPoint);
             bool handshakeDone = false;
             int userId = 0;
+            string disconnectReason = "normal";
 
             try
             {
@@ -205,13 +209,10 @@ namespace ServerApp
                 {
                     if (!Protocol_IO.ProtocolIO.ReceivePacket(session.Socket, out PacketType packetType, out byte[] payloadBytes))
                     {
-                        if (handshakeDone)
+                        disconnectReason = session.IsClosed || !_running ? "normal" : "recv-failed";
+                        if (!handshakeDone)
                         {
-                            Console.WriteLine($"접속 종료: userId={userId}, reason=recv-failed");
-                        }
-                        else
-                        {
-                            LogDisconnectOrError(ipPort);
+                            LogDisconnectOrError(ipPort, disconnectReason);
                         }
                         break;
                     }
@@ -227,6 +228,7 @@ namespace ServerApp
                         handshakeDone = true;
                         _pendingSessions.TryRemove(session, out Thread workerThread);
                         userId = _userManager.RegisterUser(session, workerThread ?? Thread.CurrentThread);
+                        LogInfo("CONNECT", $"userId={userId} remote={FormatEndpoint(ipPort)} connected={Math.Max(0, _clientCount)}");
                         continue;
                     }
 
@@ -239,7 +241,7 @@ namespace ServerApp
                 {
                     int newCount = Interlocked.Decrement(ref _clientCount);
                     if (newCount < 0) Interlocked.Exchange(ref _clientCount, 0);
-                    Console.WriteLine($"접속 해제: {(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port} -> 현재 접속 수: {Math.Max(0, _clientCount)}");
+                    LogWarn("DISCONNECT", $"userId={userId} remote={FormatEndpoint(ipPort)} reason={disconnectReason} connected={Math.Max(0, _clientCount)}");
                     _systemQueue.Enqueue(new SystemEvent(SystemEventType.Disconnect, userId));
                 }
 
@@ -270,7 +272,7 @@ namespace ServerApp
                 Interlocked.Decrement(ref _clientCount);
                 string fullMessage = "현재 인원이 가득찼습니다.";
                 ServerSend.Error(session.Socket, fullMessage);
-                Console.WriteLine($"거부된 연결({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}) - 서버가 가득 참 (현재: {currentCount})");
+                LogWarn("CONNECT", $"remote={FormatEndpoint(ipPort)} event=reject reason=max-clients connected={MaxClients}");
                 return false;
             }
 
@@ -278,7 +280,6 @@ namespace ServerApp
             string welcomeMessage = $"Welcome. 현재 접속 인원: {currentCount}";
             ServerSend.Welcome(session.Socket, welcomeMessage);
 
-            Console.WriteLine($"핸드셰이크 완료: {(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port} -> 현재 접속 수: {currentCount}");
             return true;
         }
 
@@ -302,6 +303,12 @@ namespace ServerApp
                 {
                     UpdateHeartbeat(now);
                     _lastHeartbeatTick = now;
+                }
+
+                if (now - _lastStatusTick >= StatusIntervalMs)
+                {
+                    LogStatus();
+                    _lastStatusTick = now;
                 }
 
                 if (_waitingUserId.HasValue && now - _waitingUserEnqueueTick >= MatchTimeoutMs)
@@ -342,7 +349,10 @@ namespace ServerApp
                     HandleMatchRequest(packetEvent.UserId);
                     break;
                 case PacketType.C2S_Pong:
+                    LogHeartbeatDebug($"userId={packetEvent.UserId} event=pong lastSeenTick={session.LastSeenTick}");
+                    break;
                 case PacketType.C2S_Ping:
+                    LogHeartbeatDebug($"userId={packetEvent.UserId} event=client-ping lastSeenTick={session.LastSeenTick}");
                     break;
                 case PacketType.C2S_PlaceStoneRequest:
                     HandlePlaceStoneRequest(packetEvent.UserId, session.Socket, ipPort, packetEvent.Payload);
@@ -385,27 +395,34 @@ namespace ServerApp
             if (!PacketSerializer.TryParsePlace(payloadBytes, out uint x, out uint y))
             {
                 ServerSend.Error(clientSocket, "bad position payload");
+                LogWarn("MOVE", $"userId={userId} roomId=none stone=unknown x=unknown y=unknown result=reject reason=bad-payload");
                 return;
             }
 
-            Console.WriteLine($"받은 좌표({(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}): ({x},{y})");
+            LogInfo("MOVE", $"userId={userId} event=request remote={FormatEndpoint(ipPort)} x={x} y={y}");
             if (!_userManager.TryGetUser(userId, out SessionInfo userInfo) || !userInfo.RoomId.HasValue)
             {
                 ServerSend.Error(clientSocket, "not in room");
+                LogWarn("MOVE", $"userId={userId} roomId=none stone=unknown x={x} y={y} result=reject reason=not-in-room");
                 return;
             }
 
             if (!_rooms.TryGetValue(userInfo.RoomId.Value, out Room room))
             {
                 ServerSend.Error(clientSocket, "room not found");
+                LogWarn("MOVE", $"userId={userId} roomId={userInfo.RoomId.Value} stone=unknown x={x} y={y} result=reject reason=room-not-found");
                 return;
             }
 
+            Stone requestedStone = userId == room.PlayerAId ? Stone.Black : Stone.White;
             if (!room.TryPlace(userId, x, y, out Stone placedStone, out string? rejectReason))
             {
                 ServerSend.Error(clientSocket, rejectReason ?? "invalid move");
+                LogWarn("MOVE", $"userId={userId} roomId={room.RoomId} stone={FormatStone(requestedStone)} x={x} y={y} result=reject reason={FormatReason(rejectReason ?? "invalid move")}");
                 return;
             }
+
+            LogInfo("MOVE", $"userId={userId} roomId={room.RoomId} stone={FormatStone(placedStone)} x={x} y={y} result=approve");
 
             foreach (int playerId in room.GetPlayers())
             {
@@ -419,13 +436,17 @@ namespace ServerApp
         // 역할: 매칭 요청을 처리하고 룸을 생성한다.
         private void HandleMatchRequest(int userId)
         {
+            LogInfo("MATCH", $"userId={userId} event=request");
             if (!_userManager.TryGetUser(userId, out SessionInfo userInfo))
             {
+                LogWarn("MATCH", $"userId={userId} event=reject reason=user-not-found");
                 return;
             }
 
             if (userInfo.State != UserState.Connected)
             {
+                string reason = userInfo.State == UserState.Matching ? "duplicate-request" : $"invalid-state-{userInfo.State}";
+                LogWarn("MATCH", $"userId={userId} event=reject reason={reason}");
                 return;
             }
 
@@ -435,11 +456,13 @@ namespace ServerApp
             {
                 _waitingUserId = userId;
                 _waitingUserEnqueueTick = Environment.TickCount64;
+                LogInfo("MATCH", $"userId={userId} event=enqueue waiting={userId}");
                 return;
             }
 
             if (_waitingUserId == userId)
             {
+                LogWarn("MATCH", $"userId={userId} event=reject reason=duplicate-waiting");
                 return;
             }
 
@@ -447,6 +470,9 @@ namespace ServerApp
             if (!_userManager.TryGetUser(opponentId, out SessionInfo opponentInfo) || opponentInfo.State != UserState.Matching)
             {
                 _waitingUserId = userId;
+                _waitingUserEnqueueTick = Environment.TickCount64;
+                LogWarn("MATCH", $"userId={userId} event=opponent-invalid previousWaiting={opponentId}");
+                LogInfo("MATCH", $"userId={userId} event=enqueue waiting={userId}");
                 return;
             }
 
@@ -461,6 +487,7 @@ namespace ServerApp
             _userManager.SetState(userId, UserState.InRoom);
             _waitingUserId = null;
             _waitingUserEnqueueTick = 0;
+            LogInfo("ROOM", $"roomId={roomId} black={opponentId} white={userId}");
 
             if (_userManager.TryGetSession(opponentId, out ClientSession opponentSession))
             {
@@ -529,6 +556,7 @@ namespace ServerApp
             {
                 ServerSend.MatchFail(session.Socket);
                 _userManager.SetState(userId, UserState.Connected);
+                LogWarn("MATCH", $"userId={userId} event=timeout reason=match-timeout");
             }
         }
 
@@ -545,7 +573,7 @@ namespace ServerApp
 
                 if (now - session.LastSeenTick >= TimeoutMs)
                 {
-                    Console.WriteLine($"세션 타임아웃 종료: userId={info.UserId}, reason=timeout");
+                    LogWarn("HEARTBEAT", $"userId={info.UserId} event=timeout elapsedMs={now - session.LastSeenTick}");
                     if (_waitingUserId == info.UserId)
                     {
                         _waitingUserId = null;
@@ -560,10 +588,11 @@ namespace ServerApp
                     if (ServerSend.Ping(session.Socket))
                     {
                         session.LastPingSentTick = now;
+                        LogHeartbeatDebug($"userId={info.UserId} event=ping-sent");
                     }
                     else
                     {
-                        Console.WriteLine($"세션 Ping 전송 실패: userId={info.UserId}, reason=send-failed");
+                        LogWarn("HEARTBEAT", $"userId={info.UserId} event=ping-failed reason=send-failed");
                         SafeCloseSession(session);
                     }
                 }
@@ -571,9 +600,68 @@ namespace ServerApp
         }
 
         // 역할: 접속 종료 로그를 출력한다.
-        private static void LogDisconnectOrError(Protocol.IP_Port ipPort)
+        private static void LogDisconnectOrError(Protocol.IP_Port ipPort, string reason)
         {
-            Console.WriteLine($"클라이언트 연결 종료: {(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}");
+            LogWarn("DISCONNECT", $"remote={FormatEndpoint(ipPort)} reason={reason}");
+        }
+
+        private void LogStatus()
+        {
+            List<SessionInfo> sessions = _userManager.GetSessionSnapshot();
+            int connected = sessions.Count;
+            int matching = 0;
+
+            foreach (SessionInfo info in sessions)
+            {
+                if (info.State == UserState.Matching)
+                {
+                    matching++;
+                }
+            }
+
+            string waiting = _waitingUserId.HasValue ? _waitingUserId.Value.ToString() : "none";
+            Console.WriteLine($"[{Timestamp()}][STATUS] connected={connected} matching={matching} waiting={waiting} rooms={_rooms.Count}");
+        }
+
+        private static void LogInfo(string category, string message)
+        {
+            Console.WriteLine($"[{Timestamp()}][INFO][{category}] {message}");
+        }
+
+        private static void LogWarn(string category, string message)
+        {
+            Console.WriteLine($"[{Timestamp()}][WARN][{category}] {message}");
+        }
+
+        [System.Diagnostics.Conditional("DEBUG")]
+        private static void LogHeartbeatDebug(string message)
+        {
+            Console.WriteLine($"[{Timestamp()}][DEBUG][HEARTBEAT] {message}");
+        }
+
+        private static string Timestamp()
+        {
+            return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        }
+
+        private static string FormatEndpoint(Protocol.IP_Port ipPort)
+        {
+            return $"{(string.IsNullOrEmpty(ipPort.ip) ? "unknown" : ipPort.ip)}:{ipPort.port}";
+        }
+
+        private static string FormatStone(Stone stone)
+        {
+            return stone switch
+            {
+                Stone.Black => "black",
+                Stone.White => "white",
+                _ => "unknown"
+            };
+        }
+
+        private static string FormatReason(string reason)
+        {
+            return string.IsNullOrWhiteSpace(reason) ? "unknown" : reason.Replace(' ', '-');
         }
 
         // 역할: 스레드를 제한 시간 내에 종료 대기한다.
