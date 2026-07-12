@@ -333,7 +333,7 @@ Canvas:
   m_OverrideSorting: 0
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
-  m_VertexColorAlwaysGammaSpace: 0
+  m_VertexColorAlwaysGammaSpace: 1
   m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
@@ -384,7 +384,7 @@ MonoBehaviour:
   GameoverPanel: {fileID: 501340513}
   ConnectingPanel: {fileID: 458264957}
   MatchPanel: {fileID: 2141043988}
-  ServerIp: 222.239.88.107
+  ServerIp: 127.0.0.1
   ServerPort: 9000
 --- !u!1 &162198959
 GameObject:
@@ -436,7 +436,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.6039216, g: 0.8039216, b: 0.1960784, a: 1}
+  m_Color: {r: 0.9622642, g: 0.9372842, b: 0.27687788, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -741,7 +741,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &501340514
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1853,7 +1853,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 458264961}
         m_TargetAssemblyTypeName: ConnectPanel, Assembly-CSharp
         m_MethodName: ButtonOn
         m_Mode: 1
@@ -1985,7 +1985,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 2141043992}
         m_TargetAssemblyTypeName: MatchPanel, Assembly-CSharp
         m_MethodName: ButtonOn
         m_Mode: 1
@@ -2281,7 +2281,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1583909223
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2384,7 +2384,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9c1bbe5e870d1884484ed45b8a8f538b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkManager
-  MockUse: 1
+  MockUse: 0
   mainBoard: {fileID: 670483596}
 --- !u!1 &1642027328
 GameObject:
