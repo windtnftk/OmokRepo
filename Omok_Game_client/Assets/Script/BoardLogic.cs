@@ -63,5 +63,10 @@ namespace Assets.Script
                 return CheckWin(x, y, stone);
             
         }
+
+        public void Reset()
+        {
+            board = new Stone[BOARD_SIZE * BOARD_SIZE];
+        }
     }
 }

@@ -9,6 +9,7 @@ namespace Protocol
         public const uint PositionPayloadSize = 8u;
         public const uint PlaceStoneAckPayloadSize = 12u;
         private const int MatchFoundPayloadSize = 12;
+        private const int GameOverPayloadSize = 12;
 
         // 역할: 핸드셰이크용 문자열 payload를 생성한다.
         public static byte[] BuildHello()
@@ -75,6 +76,16 @@ namespace Protocol
             return payloadBuffer;
         }
 
+        // 역할: 게임 종료 payload를 생성한다.
+        public static byte[] BuildGameOver(int roomId, uint winnerColor, uint reasonCode)
+        {
+            var payloadBuffer = new byte[GameOverPayloadSize];
+            BinaryPrimitives.WriteInt32BigEndian(payloadBuffer.AsSpan(0, 4), roomId);
+            BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(4, 4), winnerColor);
+            BinaryPrimitives.WriteUInt32BigEndian(payloadBuffer.AsSpan(8, 4), reasonCode);
+            return payloadBuffer;
+        }
+
         // 클라 전용
         // 역할: 매칭 완료 payload를 파싱한다.
         public static bool TryParseMatchFound(ReadOnlySpan<byte> payload, out int roomId, out uint myColor, out uint isMyTurn)
@@ -113,6 +124,24 @@ namespace Protocol
 
             outX = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(0, 4));
             outY = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(4, 4));
+            return true;
+        }
+
+        // 역할: 게임 종료 payload를 파싱한다.
+        public static bool TryParseGameOver(ReadOnlySpan<byte> payload, out int roomId, out uint winnerColor, out uint reasonCode)
+        {
+            roomId = 0;
+            winnerColor = 0;
+            reasonCode = 0;
+
+            if (payload.Length != GameOverPayloadSize)
+            {
+                return false;
+            }
+
+            roomId = BinaryPrimitives.ReadInt32BigEndian(payload.Slice(0, 4));
+            winnerColor = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(4, 4));
+            reasonCode = BinaryPrimitives.ReadUInt32BigEndian(payload.Slice(8, 4));
             return true;
         }
 

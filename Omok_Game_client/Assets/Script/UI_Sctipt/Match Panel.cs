@@ -42,4 +42,20 @@ public class MatchPanel: MonoBehaviour
             MatchingButton.SetActive(true);
         }
     }
+
+    public void ShowReadyText()
+    {
+        if (M_TextMeshPro != null)
+        {
+            M_TextMeshPro.SetText("Ready");
+        }
+        if (MatchingButton != null)
+        {
+            MatchingButton.SetActive(true);
+        }
+        if (MatchingStart != null)
+        {
+            MatchingStart.SetActive(false);
+        }
+    }
 }

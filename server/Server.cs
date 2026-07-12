@@ -415,7 +415,7 @@ namespace ServerApp
             }
 
             Stone requestedStone = userId == room.PlayerAId ? Stone.Black : Stone.White;
-            if (!room.TryPlace(userId, x, y, out Stone placedStone, out string? rejectReason))
+            if (!room.TryPlace(userId, x, y, out Stone placedStone, out bool isWin, out string? rejectReason))
             {
                 ServerSend.Error(clientSocket, rejectReason ?? "invalid move");
                 LogWarn("MOVE", $"userId={userId} roomId={room.RoomId} stone={FormatStone(requestedStone)} x={x} y={y} result=reject reason={FormatReason(rejectReason ?? "invalid move")}");
@@ -430,6 +430,11 @@ namespace ServerApp
                 {
                     ServerSend.PlaceStoneAck(playerSession.Socket, x, y, (uint)placedStone);
                 }
+            }
+
+            if (isWin)
+            {
+                CloseRoom(room.RoomId, RoomCloseReason.Win, placedStone, null);
             }
         }
 
@@ -516,13 +521,7 @@ namespace ServerApp
                 return;
             }
 
-            foreach (int playerId in room.GetPlayers())
-            {
-                _userManager.SetRoom(playerId, null);
-                _userManager.SetState(playerId, UserState.Connected);
-            }
-
-            _rooms.Remove(roomId);
+            CloseRoom(roomId, RoomCloseReason.Requested, Stone.Empty, null);
         }
 
         // 역할: 시스템 이벤트(예: 연결 종료)를 처리한다.
@@ -536,9 +535,44 @@ namespace ServerApp
                         _waitingUserId = null;
                         _waitingUserEnqueueTick = 0;
                     }
+                    if (_userManager.TryGetUser(systemEvent.UserId, out SessionInfo userInfo) && userInfo.RoomId.HasValue)
+                    {
+                        CloseRoom(userInfo.RoomId.Value, RoomCloseReason.Disconnect, Stone.Empty, systemEvent.UserId);
+                    }
                     _userManager.OnDisconnect(systemEvent.UserId);
                     break;
             }
+        }
+
+        private void CloseRoom(int roomId, RoomCloseReason reason, Stone winnerStone, int? disconnectedUserId)
+        {
+            if (!_rooms.TryGetValue(roomId, out Room room))
+            {
+                return;
+            }
+
+            _rooms.Remove(roomId);
+
+            foreach (int playerId in room.GetPlayers())
+            {
+                if (_userManager.TryGetUser(playerId, out _))
+                {
+                    _userManager.SetRoom(playerId, null);
+                    _userManager.SetState(playerId, UserState.Connected);
+                }
+
+                if (disconnectedUserId.HasValue && playerId == disconnectedUserId.Value)
+                {
+                    continue;
+                }
+
+                if (_userManager.TryGetSession(playerId, out ClientSession playerSession) && playerSession != null && !playerSession.IsClosed)
+                {
+                    ServerSend.GameOver(playerSession.Socket, roomId, (uint)winnerStone, (uint)reason);
+                }
+            }
+
+            LogInfo("ROOM", $"roomId={roomId} event=close reason={FormatRoomCloseReason(reason)} rooms={_rooms.Count}");
         }
 
         private void HandleMatchTimeout()
@@ -662,6 +696,17 @@ namespace ServerApp
         private static string FormatReason(string reason)
         {
             return string.IsNullOrWhiteSpace(reason) ? "unknown" : reason.Replace(' ', '-');
+        }
+
+        private static string FormatRoomCloseReason(RoomCloseReason reason)
+        {
+            return reason switch
+            {
+                RoomCloseReason.Win => "win",
+                RoomCloseReason.Disconnect => "disconnect",
+                RoomCloseReason.Requested => "requested",
+                _ => "unknown"
+            };
         }
 
         // 역할: 스레드를 제한 시간 내에 종료 대기한다.

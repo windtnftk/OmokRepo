@@ -23,6 +23,11 @@ namespace NetworkClientApp
         // 역할: 서버에 연결하고 핸드셰이크를 수행한다.
         public bool Connect(string host, int port)
         {
+            if (_connected && _socket != null)
+            {
+                return true;
+            }
+
             Disconnect();
 
             try

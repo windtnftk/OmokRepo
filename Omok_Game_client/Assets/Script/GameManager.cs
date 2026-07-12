@@ -46,7 +46,6 @@ public class GameManager : MonoBehaviour
         pendingSince = 0f;
     }
 
-
     private void Update()
     {
         if (IsPlaceRequestPending && (Time.time - pendingSince) > PlacePendingTimeoutSeconds)
@@ -64,6 +63,12 @@ public class GameManager : MonoBehaviour
 
     public void InitializeMatch(int roomId, uint assignedColor, bool assignedTurn)
     {
+        if (board != null)
+        {
+            board.ResetBoard();
+        }
+
+        placeSucces = PlaceSucces.None;
         currentRoomId = roomId;
         myColor = assignedColor == 2u ? 2u : 1u;
         opponentColor = myColor == 1u ? 2u : 1u;
@@ -75,9 +80,8 @@ public class GameManager : MonoBehaviour
 
     public void HandleBoardClick(Vector3 worldPoint)
     {
-        if (PlaceSucces.Win == placeSucces)
+        if (State == GameState.GameOver)
         {
-            Debug.Log("게임 종료 상태");
             return;
         }
 
@@ -95,24 +99,36 @@ public class GameManager : MonoBehaviour
         IsPlaceRequestPending = false;
         pendingSince = 0f;
         placeSucces = success;
-
-        if (PlaceSucces.Win == placeSucces)
-        {
-            Debug.Log("승리");
-            UiManager.GameOverUi();
-        }
-        else
-        {
-            ++isTurn;
-            isMyTurn = !isMyTurn;
-            UiManager.SetisTurn();
-        }
+        ++isTurn;
+        isMyTurn = !isMyTurn;
+        UiManager.SetisTurn();
     }
 
     public void OnPlaceRejected(string reason = null)
     {
         IsPlaceRequestPending = false;
         pendingSince = 0f;
+    }
+
+    public void OnGameOver(int roomId, uint winnerColor, uint reasonCode, bool connectionAlive)
+    {
+        if (roomId != currentRoomId && currentRoomId != 0)
+        {
+            return;
+        }
+
+        IsPlaceRequestPending = false;
+        pendingSince = 0f;
+        currentRoomId = 0;
+        isMyTurn = false;
+        isTurn = 0;
+        State = GameState.GameOver;
+
+        bool isWin = reasonCode == 1u && winnerColor == myColor;
+        if (UiManager != null)
+        {
+            UiManager.GameOverUi(isWin, reasonCode, connectionAlive);
+        }
     }
 
     public void GameReLoad()

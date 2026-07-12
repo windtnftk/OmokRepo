@@ -10,6 +10,8 @@ public class NetworkManager : MonoBehaviour
 
     private INetworkClient _client; // 니가 만든 클래스
 
+    public bool IsConnected => _client != null && _client.IsConnected;
+
     void Awake()
     {
         // 중복 생성 방지
@@ -136,6 +138,17 @@ public class NetworkManager : MonoBehaviour
                     if (GameManager.instance != null)
                     {
                         GameManager.instance.OnPlaceRejected(PacketSerializer.ParseString(packet.Payload));
+                    }
+                    break;
+                }
+            case PacketType.S2C_GameOver:
+                {
+                    if (PacketSerializer.TryParseGameOver(packet.Payload, out int roomId, out uint winnerColor, out uint reasonCode))
+                    {
+                        if (GameManager.instance != null)
+                        {
+                            GameManager.instance.OnGameOver(roomId, winnerColor, reasonCode, IsConnected);
+                        }
                     }
                     break;
                 }

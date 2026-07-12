@@ -53,5 +53,11 @@ namespace NetworkSend
             byte[] payloadBytes = PacketSerializer.BuildEmpty();
             return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.S2C_Ping, payloadBytes, (uint)payloadBytes.Length);
         }
+
+        public static bool GameOver(Socket socket, int roomId, uint winnerColor, uint reasonCode)
+        {
+            byte[] payloadBytes = PacketSerializer.BuildGameOver(roomId, winnerColor, reasonCode);
+            return Protocol_IO.ProtocolIO.SendPacket(socket, PacketType.S2C_GameOver, payloadBytes, (uint)payloadBytes.Length);
+        }
     }
 }

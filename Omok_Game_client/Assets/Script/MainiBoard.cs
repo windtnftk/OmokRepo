@@ -1,9 +1,11 @@
 using UnityEngine;
 using Assets.Script;
+using System.Collections.Generic;
 
 public class MainBoard : MonoBehaviour
 {
     private BoardLogic logic;
+    private readonly List<GameObject> stones = new List<GameObject>();
 
     private void Awake()
     {
@@ -61,11 +63,25 @@ public class MainBoard : MonoBehaviour
 
         var prefab = stoneType == Stone.Black ? BlackStonePrefab : WhiteStonePrefab;
         Vector3Int cell = new Vector3Int((int)x, (int)y, 0);
-        Instantiate(prefab, grid.GetCellCenterWorld(cell), Quaternion.identity);
+        GameObject stoneObject = Instantiate(prefab, grid.GetCellCenterWorld(cell), Quaternion.identity);
+        stones.Add(stoneObject);
 
         if (GameManager.instance != null)
         {
             GameManager.instance.OnPlaceApplied(succes);
         }
+    }
+
+    public void ResetBoard()
+    {
+        logic = new BoardLogic();
+        foreach (GameObject stone in stones)
+        {
+            if (stone != null)
+            {
+                Destroy(stone);
+            }
+        }
+        stones.Clear();
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,14 +10,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI TurnText;
     [SerializeField] private TextMeshProUGUI YourTurnText;
     [SerializeField] private TextMeshProUGUI ConnectingText;
-    //[SerializeField] private TextMeshProUGUI PendingText;
     [SerializeField] private Image myImage;
     [SerializeField] private Sprite WhiteStone;
     [SerializeField] private Sprite BlackStone;
     [SerializeField] private GameObject GameoverPanel;
     [SerializeField] private GameObject ConnectingPanel;
     [SerializeField] private GameObject MatchPanel;
-    //[SerializeField] private GameObject PendingPanel;
     [SerializeField] private string ServerIp = "222.239.88.107";
     [SerializeField] private int ServerPort = 9000;
 
@@ -32,6 +31,12 @@ public class UIManager : MonoBehaviour
 
     public void RequestConnect()
     {
+        if (NetworkManager.Instance != null && NetworkManager.Instance.IsConnected)
+        {
+            OnConnectSuccess();
+            return;
+        }
+
         GameManager.instance.SetState(GameState.Connecting);
         if (ConnectingPanel != null)
         {
@@ -53,6 +58,11 @@ public class UIManager : MonoBehaviour
 
     public void RequestMatch()
     {
+        if (GameManager.instance != null && GameManager.instance.State == GameState.Matching)
+        {
+            return;
+        }
+
         GameManager.instance.SetState(GameState.Matching);
         if (MatchPanel != null)
         {
@@ -96,6 +106,10 @@ public class UIManager : MonoBehaviour
 
     public void OnMatchFound()
     {
+        if (GameoverPanel != null)
+        {
+            GameoverPanel.SetActive(false);
+        }
         if (MatchPanel != null)
         {
             MatchPanel.SetActive(false);
@@ -119,21 +133,66 @@ public class UIManager : MonoBehaviour
 
     public void SetisTurn()
     {
-        string SettingWord = "TURN " + GameManager.instance.isTurn.ToString();
-        TurnText.SetText(SettingWord);
-        if (GameManager.instance.isMyTurn == true)
+        if (TurnText != null)
         {
-            YourTurnText.SetText("Your Turn");
+            TurnText.SetText("TURN " + GameManager.instance.isTurn.ToString());
+        }
+        if (YourTurnText != null)
+        {
+            YourTurnText.SetText(GameManager.instance.isMyTurn ? "Your Turn" : "Opponent's Turn");
+        }
+        if (myImage != null)
+        {
+            myImage.sprite = GameManager.instance.myColor == 2u ? WhiteStone : BlackStone;
+        }
+    }
+
+    public void GameOverUi(bool isWin, uint reasonCode, bool connectionAlive)
+    {
+        if (GameoverPanel != null)
+        {
+            GameoverPanel.SetActive(true);
+        }
+        StartCoroutine(ReturnAfterGameOver(connectionAlive));
+    }
+
+    private IEnumerator ReturnAfterGameOver(bool connectionAlive)
+    {
+        yield return new WaitForSeconds(2.0f);
+
+        if (GameoverPanel != null)
+        {
+            GameoverPanel.SetActive(false);
+        }
+
+        if (connectionAlive && NetworkManager.Instance != null && NetworkManager.Instance.IsConnected)
+        {
+            if (ConnectingPanel != null)
+            {
+                ConnectingPanel.SetActive(false);
+            }
+            if (MatchPanel != null)
+            {
+                MatchPanel.SetActive(true);
+                MatchPanel panel = MatchPanel.GetComponent<MatchPanel>();
+                if (panel != null)
+                {
+                    panel.ShowReadyText();
+                }
+            }
+            GameManager.instance.SetState(GameState.Connected);
         }
         else
         {
-            YourTurnText.SetText("Opponent's Turn");
+            if (MatchPanel != null)
+            {
+                MatchPanel.SetActive(false);
+            }
+            if (ConnectingPanel != null)
+            {
+                ConnectingPanel.SetActive(true);
+            }
+            GameManager.instance.SetState(GameState.ConnectFail);
         }
-
-        myImage.sprite = GameManager.instance.myColor == 2u ? WhiteStone : BlackStone;
-    }
-    public void GameOverUi()
-    {
-        GameoverPanel.SetActive(true);
     }
 }

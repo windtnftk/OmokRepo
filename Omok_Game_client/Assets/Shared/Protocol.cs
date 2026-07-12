@@ -48,6 +48,7 @@ namespace Protocol
         S2C_MatchFound = 2010,              // 매칭 완료 (roomId + myColor + isMyTurn)
         S2C_MatchFail = 2011,                 // 매칭 실패 (reasonCode)
         S2C_Ping = 2014,                    // 서버 keepalive 핑
+        S2C_GameOver = 2015,                // 게임 종료 (roomId + winnerColor + reasonCode)
         //S2C_StateSnapshot = 2005,           // 상태 스냅샷 (state + roomId + myColor + turnColor + ...)
 
         //S2C_MatchFound = 2010,              // 상대 찾음/룸 생성됨 (roomId + myColor 등)

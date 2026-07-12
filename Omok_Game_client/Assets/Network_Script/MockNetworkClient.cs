@@ -12,9 +12,17 @@ namespace NetworkClientApp
         private readonly BoardLogic _boardLogic = new();
         private bool _connected;
         private bool _isBlackTurn = true;
+        private int _roomId;
+
+        public bool IsConnected => _connected;
 
         public bool Connect(string ip, int port)
         {
+            if (_connected)
+            {
+                return true;
+            }
+
             _connected = true;
             EnqueueDelayed(new PacketEvent(PacketType.S2C_Welcome, Array.Empty<byte>()));
             return true;
@@ -27,7 +35,10 @@ namespace NetworkClientApp
                 return;
             }
 
-            EnqueueDelayed(new PacketEvent(PacketType.S2C_MatchFound, PacketSerializer.MakeMatchFound(1, 1u, 1u)));
+            _roomId++;
+            _isBlackTurn = true;
+            _boardLogic.Reset();
+            EnqueueDelayed(new PacketEvent(PacketType.S2C_MatchFound, PacketSerializer.MakeMatchFound(_roomId, 1u, 1u)));
         }
 
         public bool SendPosition(uint x, uint y)
@@ -47,6 +58,10 @@ namespace NetworkClientApp
                 {
                     success = true;
                     _isBlackTurn = !_isBlackTurn;
+                    if (result == PlaceSucces.Win)
+                    {
+                        EnqueueDelayed(new PacketEvent(PacketType.S2C_GameOver, PacketSerializer.BuildGameOver(_roomId, stone, 1u)));
+                    }
                 }
             }
 
