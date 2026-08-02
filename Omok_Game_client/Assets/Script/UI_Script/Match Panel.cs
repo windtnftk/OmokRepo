@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-public class MatchPanel: MonoBehaviour
+public class MatchPanel : MonoBehaviour
 {
     [SerializeField] private GameObject MatchingButton;
     [SerializeField] private GameObject MatchingStart;
@@ -17,17 +17,19 @@ public class MatchPanel: MonoBehaviour
 
     public void ShowMatchingText()
     {
-        if (M_TextMeshPro != null)
-        {
-            M_TextMeshPro.SetText("Try Matching...");
-        }
         if (MatchingButton != null)
         {
             MatchingButton.SetActive(false);
         }
+
         if (MatchingStart != null)
         {
             MatchingStart.SetActive(true);
+        }
+
+        if (M_TextMeshPro != null)
+        {
+            M_TextMeshPro.SetText("SEARCHING FOR OPPONENT...");
         }
     }
 
@@ -35,8 +37,14 @@ public class MatchPanel: MonoBehaviour
     {
         if (M_TextMeshPro != null)
         {
-            M_TextMeshPro.SetText("Matching false!");
+            M_TextMeshPro.SetText("MATCHING FAILED");
         }
+
+        if (MatchingStart != null)
+        {
+            MatchingStart.SetActive(false);
+        }
+
         if (MatchingButton != null)
         {
             MatchingButton.SetActive(true);
@@ -45,17 +53,19 @@ public class MatchPanel: MonoBehaviour
 
     public void ShowReadyText()
     {
-        if (M_TextMeshPro != null)
+        if (MatchingStart != null)
         {
-            M_TextMeshPro.SetText("Ready");
+            MatchingStart.SetActive(false);
         }
+
         if (MatchingButton != null)
         {
             MatchingButton.SetActive(true);
         }
-        if (MatchingStart != null)
+
+        if (M_TextMeshPro != null)
         {
-            MatchingStart.SetActive(false);
+            M_TextMeshPro.SetText("READY");
         }
     }
 }

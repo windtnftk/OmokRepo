@@ -1,23 +1,26 @@
-using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
-    [SerializeField] private TextMeshProUGUI TurnText;
-    [SerializeField] private TextMeshProUGUI YourTurnText;
     [SerializeField] private TextMeshProUGUI ConnectingText;
-    [SerializeField] private Image myImage;
-    [SerializeField] private Sprite WhiteStone;
-    [SerializeField] private Sprite BlackStone;
-    [SerializeField] private GameObject GameoverPanel;
+    [SerializeField] private TurnPanel turnPanel;
+    [SerializeField] private UserPanel userPanel;
+    [SerializeField] private Sprite blackStoneSprite;
+    [SerializeField] private Sprite whiteStoneSprite;
     [SerializeField] private GameObject ConnectingPanel;
     [SerializeField] private GameObject MatchPanel;
+    [SerializeField] private GameObject GamePanel;
+    [SerializeField] private GameObject BoardObject;
     [SerializeField] private string ServerIp = "222.239.88.107";
     [SerializeField] private int ServerPort = 9000;
+
+    private int approvedStoneCount;
+    private uint cachedMyColor = 1u;
+    private uint cachedOpponentColor = 2u;
+    private bool isGameEnded;
 
     private void Awake()
     {
@@ -27,6 +30,11 @@ public class UIManager : MonoBehaviour
             return;
         }
         Instance = this;
+    }
+
+    private void Start()
+    {
+        ResetGamePanels();
     }
 
     public void RequestConnect()
@@ -80,14 +88,7 @@ public class UIManager : MonoBehaviour
 
     public void OnConnectSuccess()
     {
-        if (ConnectingPanel != null)
-        {
-            ConnectingPanel.SetActive(false);
-        }
-        if (MatchPanel != null)
-        {
-            MatchPanel.SetActive(true);
-        }
+        ShowMatchView(true);
         GameManager.instance.SetState(GameState.Connected);
     }
 
@@ -106,16 +107,31 @@ public class UIManager : MonoBehaviour
 
     public void OnMatchFound()
     {
-        if (GameoverPanel != null)
+        ResetGamePanels();
+        ShowGameView();
+        GameManager.instance.SetState(GameState.InGame);
+        SetupMatchPanels();
+    }
+
+    private void ShowGameView()
+    {
+        if (ConnectingPanel != null)
         {
-            GameoverPanel.SetActive(false);
+            ConnectingPanel.SetActive(false);
         }
         if (MatchPanel != null)
         {
             MatchPanel.SetActive(false);
         }
-        GameManager.instance.SetState(GameState.InGame);
-        SetisTurn();
+        if (GamePanel != null)
+        {
+            GamePanel.SetActive(true);
+        }
+        if (BoardObject != null)
+        {
+            BoardObject.SetActive(true);
+        }
+        SetGamePanelsActive(true);
     }
 
     public void OnMatchFail()
@@ -133,43 +149,61 @@ public class UIManager : MonoBehaviour
 
     public void SetisTurn()
     {
-        if (TurnText != null)
+        if (isGameEnded || GameManager.instance == null)
         {
-            TurnText.SetText("TURN " + GameManager.instance.isTurn.ToString());
+            return;
         }
-        if (YourTurnText != null)
+
+        approvedStoneCount = GameManager.instance.isTurn;
+        uint currentTurnColor = GetCurrentTurnColor(approvedStoneCount);
+        Sprite currentTurnStone = GetStoneSprite(currentTurnColor);
+        bool isMyTurn = currentTurnColor == cachedMyColor;
+        int turnNumber = approvedStoneCount + 1;
+
+        if (turnPanel != null)
         {
-            YourTurnText.SetText(GameManager.instance.isMyTurn ? "Your Turn" : "Opponent's Turn");
-        }
-        if (myImage != null)
-        {
-            myImage.sprite = GameManager.instance.myColor == 2u ? WhiteStone : BlackStone;
+            turnPanel.UpdateTurn(currentTurnStone, isMyTurn, turnNumber);
         }
     }
 
     public void GameOverUi(bool isWin, uint reasonCode, bool connectionAlive)
     {
-        if (GameoverPanel != null)
+        isGameEnded = true;
+        uint winnerColor = isWin ? cachedMyColor : cachedOpponentColor;
+        Sprite winnerStone = GetStoneSprite(winnerColor);
+        string winnerText = winnerColor == 2u ? "WHITE\nWINS" : "BLACK\nWINS";
+
+        if (turnPanel != null)
         {
-            GameoverPanel.SetActive(true);
+            turnPanel.gameObject.SetActive(true);
+            turnPanel.ShowGameResult(winnerStone, winnerText, approvedStoneCount);
         }
-        StartCoroutine(ReturnAfterGameOver(connectionAlive));
     }
 
-    private IEnumerator ReturnAfterGameOver(bool connectionAlive)
+    public void ReturnToMatchForRetry()
     {
-        yield return new WaitForSeconds(2.0f);
+        bool connectionAlive = NetworkManager.Instance != null && NetworkManager.Instance.IsConnected;
+        ShowMatchView(connectionAlive);
+        GameManager.instance.SetState(connectionAlive ? GameState.Connected : GameState.ConnectFail);
+    }
 
-        if (GameoverPanel != null)
-        {
-            GameoverPanel.SetActive(false);
-        }
+    private void ShowMatchView(bool connectionAlive)
+    {
+        ResetGamePanels();
 
-        if (connectionAlive && NetworkManager.Instance != null && NetworkManager.Instance.IsConnected)
+        if (connectionAlive)
         {
             if (ConnectingPanel != null)
             {
                 ConnectingPanel.SetActive(false);
+            }
+            if (GamePanel != null)
+            {
+                GamePanel.SetActive(false);
+            }
+            if (BoardObject != null)
+            {
+                BoardObject.SetActive(false);
             }
             if (MatchPanel != null)
             {
@@ -180,10 +214,17 @@ public class UIManager : MonoBehaviour
                     panel.ShowReadyText();
                 }
             }
-            GameManager.instance.SetState(GameState.Connected);
         }
         else
         {
+            if (GamePanel != null)
+            {
+                GamePanel.SetActive(false);
+            }
+            if (BoardObject != null)
+            {
+                BoardObject.SetActive(false);
+            }
             if (MatchPanel != null)
             {
                 MatchPanel.SetActive(false);
@@ -192,7 +233,69 @@ public class UIManager : MonoBehaviour
             {
                 ConnectingPanel.SetActive(true);
             }
-            GameManager.instance.SetState(GameState.ConnectFail);
         }
+    }
+
+    private void SetupMatchPanels()
+    {
+        if (GameManager.instance == null)
+        {
+            return;
+        }
+
+        approvedStoneCount = 0;
+        isGameEnded = false;
+        cachedMyColor = GameManager.instance.myColor == 2u ? 2u : 1u;
+        cachedOpponentColor = cachedMyColor == 1u ? 2u : 1u;
+
+        if (userPanel != null)
+        {
+            userPanel.SetupPlayerColor(GetStoneSprite(cachedMyColor));
+        }
+
+        if (turnPanel != null)
+        {
+            uint currentTurnColor = GetCurrentTurnColor(approvedStoneCount);
+            turnPanel.SetupGame(GetStoneSprite(currentTurnColor), currentTurnColor == cachedMyColor, 1);
+        }
+    }
+
+    private void ResetGamePanels()
+    {
+        approvedStoneCount = 0;
+        isGameEnded = false;
+
+        if (turnPanel != null)
+        {
+            turnPanel.ResetPanel();
+        }
+        if (userPanel != null)
+        {
+            userPanel.ResetPanel();
+        }
+
+        SetGamePanelsActive(false);
+    }
+
+    private void SetGamePanelsActive(bool isActive)
+    {
+        if (turnPanel != null)
+        {
+            turnPanel.gameObject.SetActive(isActive);
+        }
+        if (userPanel != null)
+        {
+            userPanel.gameObject.SetActive(isActive);
+        }
+    }
+
+    private Sprite GetStoneSprite(uint stoneColor)
+    {
+        return stoneColor == 2u ? whiteStoneSprite : blackStoneSprite;
+    }
+
+    private uint GetCurrentTurnColor(int approvedStones)
+    {
+        return approvedStones % 2 == 0 ? 1u : 2u;
     }
 }
