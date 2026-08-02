@@ -12,9 +12,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Sprite whiteStoneSprite;
     [SerializeField] private GameObject ConnectingPanel;
     [SerializeField] private GameObject MatchPanel;
-    [SerializeField] private GameObject GamePanel;
     [SerializeField] private GameObject BoardObject;
-    [SerializeField] private string ServerIp = "222.239.88.107";
+    [SerializeField] private TMP_InputField serverIpInput;
     [SerializeField] private int ServerPort = 9000;
 
     private int approvedStoneCount;
@@ -56,7 +55,15 @@ public class UIManager : MonoBehaviour
         }
         if (NetworkManager.Instance != null)
         {
-            bool success = NetworkManager.Instance.Connect(ServerIp, ServerPort);
+            string serverIp = serverIpInput.text.Trim();
+
+            if (string.IsNullOrWhiteSpace(serverIp))
+            {
+                OnConnectFail();
+                return;
+            }
+
+            bool success = NetworkManager.Instance.Connect(serverIp, ServerPort);
             if (!success)
             {
                 OnConnectFail();
@@ -122,10 +129,6 @@ public class UIManager : MonoBehaviour
         if (MatchPanel != null)
         {
             MatchPanel.SetActive(false);
-        }
-        if (GamePanel != null)
-        {
-            GamePanel.SetActive(true);
         }
         if (BoardObject != null)
         {
@@ -197,10 +200,6 @@ public class UIManager : MonoBehaviour
             {
                 ConnectingPanel.SetActive(false);
             }
-            if (GamePanel != null)
-            {
-                GamePanel.SetActive(false);
-            }
             if (BoardObject != null)
             {
                 BoardObject.SetActive(false);
@@ -217,10 +216,6 @@ public class UIManager : MonoBehaviour
         }
         else
         {
-            if (GamePanel != null)
-            {
-                GamePanel.SetActive(false);
-            }
             if (BoardObject != null)
             {
                 BoardObject.SetActive(false);
